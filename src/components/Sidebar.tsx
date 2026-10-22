@@ -7,14 +7,9 @@ import {
   FileText,
   ChevronDown,
   ChevronRight,
-  Plus,
-  Compass,
   ArrowLeft,
   ArrowRight,
-  CheckCircle2,
-  ExternalLink,
-  ShieldCheck,
-  Building2
+  ShieldCheck
 } from 'lucide-react';
 
 export type ActiveSection = 'forecast' | 'advisory';
@@ -45,7 +40,7 @@ export default function Sidebar({
   isCollapsed,
   onToggleCollapse
 }: SidebarProps) {
-  const [websites, setWebsites] = useState<WebsiteItem[]>([
+  const [websites] = useState<WebsiteItem[]>([
     {
       id: 'nlas',
       name: 'NLS Portal (NLAS)',
@@ -72,44 +67,8 @@ export default function Sidebar({
     nlas: true
   });
 
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [newSiteName, setNewSiteName] = useState('');
-  const [newSiteUrl, setNewSiteUrl] = useState('');
-
   const toggleSite = (siteId: string) => {
     setExpandedSites(prev => ({ ...prev, [siteId]: !prev[siteId] }));
-  };
-
-  const handleAddWebsite = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newSiteName.trim()) return;
-
-    const id = newSiteName.toLowerCase().replace(/[^a-z0-9]/g, '-');
-    const newSite: WebsiteItem = {
-      id,
-      name: newSiteName,
-      domain: newSiteUrl || 'external-portal.gov.bd',
-      active: false,
-      subsections: [
-        {
-          id: 'forecast',
-          label: 'Weather & Metrics',
-          icon: CloudSun,
-          badge: 'Ready'
-        },
-        {
-          id: 'advisory',
-          label: 'Bulletins & Notes',
-          icon: FileText
-        }
-      ]
-    };
-
-    setWebsites(prev => [...prev, newSite]);
-    setExpandedSites(prev => ({ ...prev, [id]: true }));
-    setNewSiteName('');
-    setNewSiteUrl('');
-    setShowAddModal(false);
   };
 
   return (
@@ -341,61 +300,6 @@ export default function Sidebar({
             );
           })}
         </div>
-
-        {/* Add Future Website Button */}
-        {!isCollapsed ? (
-          <button
-            onClick={() => setShowAddModal(true)}
-            id="btn-add-website"
-            style={{
-              marginTop: '16px',
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              padding: '10px 14px',
-              border: '1px dashed #cbd5e1',
-              borderRadius: '10px',
-              backgroundColor: '#fafafa',
-              color: '#475569',
-              fontSize: '12px',
-              fontWeight: 600,
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = '#006a4e';
-              e.currentTarget.style.color = '#006a4e';
-              e.currentTarget.style.backgroundColor = '#f0fdf4';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = '#cbd5e1';
-              e.currentTarget.style.color = '#475569';
-              e.currentTarget.style.backgroundColor = '#fafafa';
-            }}
-          >
-            <Plus size={15} />
-            <span>Add New Website</span>
-          </button>
-        ) : (
-          <button
-            onClick={() => setShowAddModal(true)}
-            title="Add New Website"
-            style={{
-              marginTop: '16px',
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '10px',
-              border: '1px dashed #cbd5e1',
-              borderRadius: '10px',
-              color: '#475569'
-            }}
-          >
-            <Plus size={16} />
-          </button>
-        )}
       </div>
 
       {/* Bottom Footer Info */}
@@ -427,107 +331,6 @@ export default function Sidebar({
           </div>
         )}
       </div>
-
-      {/* Add Website Modal */}
-      {showAddModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          backgroundColor: 'rgba(15, 23, 42, 0.4)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 100
-        }}>
-          <div style={{
-            backgroundColor: '#ffffff',
-            borderRadius: '16px',
-            padding: '24px',
-            width: '90%',
-            maxWidth: '420px',
-            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)'
-          }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>
-              Add New Website to Monitor
-            </h3>
-            <p style={{ fontSize: '12px', color: '#64748b', marginBottom: '16px' }}>
-              Add a new meteorological or agricultural advisory website to your dashboard.
-            </p>
-
-            <form onSubmit={handleAddWebsite}>
-              <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                  Website Name
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Bangladesh Meteorological Dept (BMD)"
-                  value={newSiteName}
-                  onChange={(e) => setNewSiteName(e.target.value)}
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '8px',
-                    fontSize: '13px'
-                  }}
-                />
-              </div>
-
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                  Target Website URL
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. https://bmd.gov.bd"
-                  value={newSiteUrl}
-                  onChange={(e) => setNewSiteUrl(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '8px',
-                    fontSize: '13px'
-                  }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  style={{
-                    padding: '8px 14px',
-                    borderRadius: '8px',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    color: '#64748b',
-                    backgroundColor: '#f1f5f9'
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: '8px',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    color: '#ffffff',
-                    backgroundColor: '#006a4e'
-                  }}
-                >
-                  Save Website
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </aside>
   );
 }

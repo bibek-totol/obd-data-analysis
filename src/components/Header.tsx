@@ -1,24 +1,18 @@
 'use client';
 
 import React from 'react';
-import { RefreshCw, Radio, Globe, Bell, User, CheckCircle2 } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 
 interface HeaderProps {
   onReload: () => void;
   isLoading: boolean;
   lastUpdated?: string;
-  source?: string;
-  currentLang: 'EN' | 'বাংলা';
-  onLangChange: (lang: 'EN' | 'বাংলা') => void;
 }
 
 export default function Header({
   onReload,
   isLoading,
-  lastUpdated,
-  source = 'BMDWRF',
-  currentLang,
-  onLangChange
+  lastUpdated
 }: HeaderProps) {
   return (
     <header style={{
@@ -68,32 +62,8 @@ export default function Header({
         </div>
       </div>
 
-      {/* Right: Actions, Refresh, Language, Profile */}
+      {/* Right: Actions, Refresh, Profile */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-        {/* Live Feed Badge */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          background: '#ecfdf5',
-          border: '1px solid #a7f3d0',
-          color: '#065f46',
-          padding: '4px 10px',
-          borderRadius: '9999px',
-          fontSize: '12px',
-          fontWeight: 600
-        }}>
-          <span style={{
-            width: '7px',
-            height: '7px',
-            borderRadius: '50%',
-            backgroundColor: '#10b981',
-            boxShadow: '0 0 8px #10b981',
-            display: 'inline-block'
-          }} />
-          <span>Live Feed ({source})</span>
-        </div>
-
         {/* Reload Latest Data Button */}
         <button
           onClick={onReload}
@@ -148,45 +118,6 @@ export default function Header({
           </span>
         )}
 
-        {/* Language Switcher */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          backgroundColor: '#f1f5f9',
-          border: '1px solid #e2e8f0',
-          borderRadius: '20px',
-          padding: '2px',
-          fontSize: '12px',
-          fontWeight: 600
-        }}>
-          <button
-            onClick={() => onLangChange('বাংলা')}
-            style={{
-              padding: '4px 10px',
-              borderRadius: '16px',
-              backgroundColor: currentLang === 'বাংলা' ? '#ffffff' : 'transparent',
-              color: currentLang === 'বাংলা' ? '#0f172a' : '#64748b',
-              boxShadow: currentLang === 'বাংলা' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            বাংলা
-          </button>
-          <button
-            onClick={() => onLangChange('EN')}
-            style={{
-              padding: '4px 10px',
-              borderRadius: '16px',
-              backgroundColor: currentLang === 'EN' ? '#ffffff' : 'transparent',
-              color: currentLang === 'EN' ? '#0f172a' : '#64748b',
-              boxShadow: currentLang === 'EN' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            EN
-          </button>
-        </div>
-
         {/* Profile Pill */}
         <div style={{
           display: 'flex',
@@ -219,3 +150,4 @@ export default function Header({
     </header>
   );
 }
+

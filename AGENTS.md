@@ -14,8 +14,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 This is a **Next.js (App Router, TypeScript, Vanilla CSS)** application designed to monitor and aggregate data from government and meteorological portals. 
 - **Primary Website (Active)**: **National Livestock Advisory System (NLAS / NLS)** (`https://nlas.dls.gov.bd/dashboard/weather_forecast`).
 - **Sidebar Structure**:
-  - Multi-website extensible sidebar where multiple portals can be monitored. Currently, **NLS (NLAS)** is the active portal.
-  - An **"+ Add New Website"** feature allows registering future portals (e.g., BMD, DAE).
+  - Clean collapsible navigation dedicated to the **NLS Portal (NLAS)** (`nlas.dls.gov.bd`).
   - Under NLS, there are two distinct sub-sections:
     1. **Forecast Section** *(Completed & Live)*: Meteorological forecasts, district/upazila filtering, 5-6 day weather cards, and 3-hourly interval spline charts.
     2. **Advisory Section** *(Framework Ready)*: Configured in the navigation and ready for user requirements in the next phase.
@@ -49,8 +48,8 @@ Data is harvested directly from the NLAS backend services (`https://nlas.dls.gov
 ## 3. Key Components & File Directory
 - **`src/lib/nlas-client.ts`**: Core API client, TypeScript interfaces (`ForecastResponseData`, `DailyWeatherItem`, `HourlyWeatherStep`), weather calculation logic, dynamic daily windowing, and resilient fallbacks.
 - **`src/app/api/nlas/`**: Next.js route handlers acting as server-side proxies to prevent CORS issues.
-- **`src/components/Header.tsx`**: CARE South Asia & DLS branding, live feed status badge, `Reload Latest Data` button with spinner animation, language toggle (`বাংলা | EN`), and user avatar.
-- **`src/components/Sidebar.tsx`**: Collapsible navigation with integrated website list, active NLS subsections (Forecast & Advisory), and modal for adding new portals.
+- **`src/components/Header.tsx`**: CARE South Asia & DLS branding, `Reload Latest Data` button with spinner animation, and user avatar.
+- **`src/components/Sidebar.tsx`**: Collapsible navigation with NLS portal subsections (Forecast & Advisory) and DLS verification badge.
 - **`src/components/LocationSelector.tsx`**: Filter dropdowns for District and Upazila with dynamic cascading updates.
 - **`src/components/HeroWeatherCard.tsx`**: Current date, location pin, humidity %, wind speed/direction, weather condition with day/night icon, and BMDWRF attribution.
 - **`src/components/DailyForecastGrid.tsx`**: 5-6 day cards showing weekday, date, weather icon, temp range (`33° / 25°C`), rainfall (`0mm`), and wind speed. Starts dynamically on today's calendar date.

@@ -21,7 +21,7 @@ export default function HomePage() {
   // Navigation State
   const [activeSection, setActiveSection] = useState<ActiveSection>('forecast');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [currentLang, setCurrentLang] = useState<'EN' | 'বাংলা'>('EN');
+
 
   // Location & Data States
   const [districts, setDistricts] = useState<DistrictItem[]>(DEFAULT_DISTRICTS);
@@ -167,9 +167,6 @@ export default function HomePage() {
         onReload={handleManualReload}
         isLoading={isLoadingForecast}
         lastUpdated={lastReloadTime}
-        source={forecastData?.source || 'BMDWRF'}
-        currentLang={currentLang}
-        onLangChange={setCurrentLang}
       />
 
       {/* Main Body with Sidebar & Content */}
