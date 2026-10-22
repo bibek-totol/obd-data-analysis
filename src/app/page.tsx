@@ -207,7 +207,7 @@ export default function HomePage() {
                 <span>NLS Portal (NLAS)</span>
                 <span>/</span>
                 <span style={{ color: '#006a4e', fontWeight: 700 }}>
-                  {activeSection === 'forecast' ? 'Weather Forecast Section' : 'Advisory Section'}
+                  {activeSection === 'forecast' ? 'Weather Forecast Section' : 'Region Wise Monthly Advisory'}
                 </span>
               </div>
               <h1 style={{
@@ -218,7 +218,7 @@ export default function HomePage() {
               }}>
                 {activeSection === 'forecast'
                   ? `Weather Forecast: ${upazilaLabel}, ${districtLabel}`
-                  : `Livestock Advisory: ${upazilaLabel}, ${districtLabel}`}
+                  : `Region Wise Monthly Advisory`}
               </h1>
             </div>
 
