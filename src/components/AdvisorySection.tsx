@@ -80,6 +80,8 @@ export default function AdvisorySection({
   const [lang, setLang] = useState<'en' | 'bn'>('en');
   const [advisoryData, setAdvisoryData] = useState<RegionalAdvisoryData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isReloading, setIsReloading] = useState<boolean>(false);
+  const [lastReloadedTime, setLastReloadedTime] = useState<string>('');
   const [isCopied, setIsCopied] = useState<boolean>(false);
   const [hoveredMonthIdx, setHoveredMonthIdx] = useState<number | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -112,6 +114,8 @@ export default function AdvisorySection({
           if (json.success && json.data) {
             cacheRef.current[cacheKey] = json.data;
             setAdvisoryData(json.data);
+            const now = new Date();
+            setLastReloadedTime(now.toLocaleTimeString());
           } else {
             throw new Error(json.error || 'Failed to fetch advisory data');
           }
@@ -134,6 +138,33 @@ export default function AdvisorySection({
       isCancelled = true;
     };
   }, [selectedZoneCode, lang, selectedMonth]);
+
+  // Handle Manual Real-Time Reload
+  const handleReloadAdvisory = async () => {
+    setIsReloading(true);
+    setErrorMsg(null);
+    const cacheKey = `${selectedZoneCode}_${lang}_${selectedMonth}`;
+    delete cacheRef.current[cacheKey]; // Invalidate cache for real-time dynamic pull
+
+    try {
+      const res = await fetch(`/api/nlas/advisory-regional?regionCode=${selectedZoneCode}&lang=${lang}&month=${selectedMonth}&reload=true&t=${Date.now()}`);
+      const json = await res.json();
+
+      if (json.success && json.data) {
+        cacheRef.current[cacheKey] = json.data;
+        setAdvisoryData(json.data);
+        const now = new Date();
+        setLastReloadedTime(now.toLocaleTimeString());
+      } else {
+        throw new Error(json.error || 'Failed to fetch real-time advisory data');
+      }
+    } catch (err) {
+      console.error('Reload advisory error:', err);
+      setErrorMsg(err instanceof Error ? err.message : 'Unable to reload advisory data');
+    } finally {
+      setIsReloading(false);
+    }
+  };
 
   // Handle Copy Directives
   const handleCopyDirectives = () => {
@@ -255,6 +286,23 @@ export default function AdvisorySection({
               }}>
                 7 Agro-Ecological Zones
               </span>
+              {lastReloadedTime && (
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: '#059669',
+                  backgroundColor: '#ecfdf5',
+                  padding: '3px 10px',
+                  borderRadius: '12px',
+                  border: '1px solid #a7f3d0'
+                }}>
+                  <CheckCircle2 size={12} color="#10b981" />
+                  <span>Synced: {lastReloadedTime}</span>
+                </span>
+              )}
             </div>
             <p style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
               Meteorological Climatology & Tailored Veterinary Bulletins from the Department of Livestock Services (DLS)
@@ -264,6 +312,49 @@ export default function AdvisorySection({
 
         {/* Global Controls: Month, Language, Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          {/* Reload Latest Advisory Button */}
+          <button
+            onClick={handleReloadAdvisory}
+            disabled={isReloading || isLoading}
+            id="btn-reload-latest-advisory"
+            title="Fetch real-time dynamic advisory data directly from DLS government server"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              backgroundColor: isReloading ? '#e2e8f0' : '#006a4e',
+              color: isReloading ? '#64748b' : '#ffffff',
+              padding: '7px 16px',
+              borderRadius: '8px',
+              fontSize: '12px',
+              fontWeight: 700,
+              border: 'none',
+              cursor: isReloading ? 'not-allowed' : 'pointer',
+              boxShadow: isReloading ? 'none' : '0 2px 8px rgba(0, 106, 78, 0.25)',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              if (!isReloading) {
+                e.currentTarget.style.backgroundColor = '#00523d';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isReloading) {
+                e.currentTarget.style.backgroundColor = '#006a4e';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }
+            }}
+          >
+            <RefreshCw
+              size={14}
+              style={{
+                animation: isReloading ? 'spin 0.8s linear infinite' : 'none'
+              }}
+            />
+            <span>{isReloading ? 'Updating Advisory...' : 'Reload Latest Advisory'}</span>
+          </button>
+
           {/* Month Selector */}
           <div style={{
             display: 'flex',

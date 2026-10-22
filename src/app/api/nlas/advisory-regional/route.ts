@@ -7,15 +7,16 @@ export async function GET(request: NextRequest) {
   const lang = (searchParams.get('lang') === 'bn' ? 'bn' : 'en') as 'en' | 'bn';
   const monthParam = searchParams.get('month');
   const month = monthParam ? parseInt(monthParam, 10) : undefined;
+  const forceReload = searchParams.get('reload') === 'true';
 
   try {
-    const data = await fetchRegionalAdvisory(regionCode, lang, month);
+    const data = await fetchRegionalAdvisory(regionCode, lang, month, forceReload);
     return NextResponse.json({
       success: true,
       data
     }, {
       headers: {
-        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600'
+        'Cache-Control': forceReload ? 'no-store, no-cache' : 'public, s-maxage=300, stale-while-revalidate=600'
       }
     });
   } catch (error) {

@@ -56,12 +56,13 @@ Data is harvested directly from the NLAS backend services (`https://nlas.dls.gov
    - **Location-Aware Defaulting**: Automatically checks current selected district in the header/forecast section (e.g. Dhaka) and defaults the active advisory zone to its matching agro-ecological zone (e.g. Mid-Eastern Zone).
    - **Dual-Axis Climatology Chart**: Displays 12-month precipitation bars (`a_precip` in mm) alongside Max Temp (`tempMax` in °C) and Min Temp (`tempMin` in °C) splines with interactive tooltips and month highlighting.
    - **Bilingual Livestock & Poultry Bulletins**: Instant English / Bengali toggle loading authentic advisory directives for cattle, buffalo, goat, sheep, broiler, layer, and ducks with one-click copy and print capabilities.
+   - **Real-Time Dynamic Synchronization**: Dedicated `Reload Latest Advisory` button in the Advisory control header. Triggers cache-busting fetches (`reload=1&t=...`) to upstream government servers (`/apinlas/nlas/advisory_region.php`), evicts client-side cache, and displays live sync status timestamp badges.
 
 ---
 
 ## 3. Key Components & File Directory
 - **`src/lib/nlas-client.ts`**: Weather API client, TypeScript interfaces, sliding date windowing, weather condition mapping, and resilient fallbacks.
-- **`src/lib/regional-advisory.ts`**: Dedicated Regional Advisory client, 7 agro-ecological zones definitions, district lists, and upstream proxy fetcher.
+- **`src/lib/regional-advisory.ts`**: Dedicated Regional Advisory client, 7 agro-ecological zones definitions, district lists, real-time cache-busting query handler, and upstream proxy fetcher.
 - **`src/app/api/nlas/`**: Next.js route handlers (`/forecast`, `/districts`, `/upazilas`, `/advisory-regional`).
 - **`src/components/Header.tsx`**: CARE South Asia & DLS branding, `Reload Latest Data` button with spinner animation, and user avatar.
 - **`src/components/Sidebar.tsx`**: Collapsible navigation with NLS portal subsections (Weather Forecast & Advisory Section) and DLS verification badge.
@@ -69,7 +70,7 @@ Data is harvested directly from the NLAS backend services (`https://nlas.dls.gov
 - **`src/components/HeroWeatherCard.tsx`**: Current date, location pin, humidity %, wind speed/direction, weather condition with day/night icon, and BMDWRF attribution.
 - **`src/components/DailyForecastGrid.tsx`**: 5-6 day cards showing weekday, date, weather icon, temp range, rainfall, and relative humidity.
 - **`src/components/HourlyForecastCharts.tsx`**: High-precision SVG interactive charts (Temp/Cloud, Rain/Humidity, Windgust/Direction).
-- **`src/components/AdvisorySection.tsx`**: Full Regional Advisory module featuring 7 agro-ecological zone selector, 12-month climatology SVG chart, month picker, bilingual language switch (`English` / `বাংলা`), and livestock/poultry bulletins.
+- **`src/components/AdvisorySection.tsx`**: Full Regional Advisory module featuring 7 agro-ecological zone selector, 12-month climatology SVG chart, month picker, bilingual language switch (`English` / `বাংলা`), dedicated `Reload Latest Advisory` real-time sync button, and livestock/poultry bulletins.
 - **`src/app/page.tsx`**: Main dashboard controller managing state, cascading fetches, manual refresh, and active section toggling.
 - **`src/app/globals.css`**: Design tokens, typography (Inter & Hind Siliguri), smooth animations, and scrollbars.
 
@@ -77,4 +78,5 @@ Data is harvested directly from the NLAS backend services (`https://nlas.dls.gov
 
 ## 4. Current Status
 1. **Forecast Section**: Fully implemented, connected to live data, verified with dynamic daily sliding calendar windows.
-2. **Advisory Section**: Fully implemented based on analysis of `https://nlas.dls.gov.bd/dashboard/advisory_regional`, connected to live DLS APIs, tested in browser across all 7 regions, both languages, and 12 months.
+2. **Advisory Section**: Fully implemented based on analysis of `https://nlas.dls.gov.bd/dashboard/advisory_regional`, connected to live DLS APIs, tested in browser across all 7 regions, both languages, and 12 months. Features real-time dynamic refresh via `Reload Latest Advisory`.
+

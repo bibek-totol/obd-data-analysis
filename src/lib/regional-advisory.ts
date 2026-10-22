@@ -101,10 +101,12 @@ const NLAS_BASE_URL = 'https://nlas.dls.gov.bd/apinlas/';
 export async function fetchRegionalAdvisory(
   regionCode: number = 1,
   lang: 'en' | 'bn' = 'en',
-  month?: number
+  month?: number,
+  forceReload: boolean = false
 ): Promise<RegionalAdvisoryData> {
   const currentMonthNum = month || (new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Dhaka' })).getMonth() + 1);
-  const url = `${NLAS_BASE_URL}nlas/advisory_region.php?region_code=${regionCode}&lang=${lang}&month=${currentMonthNum}`;
+  const cacheBuster = forceReload ? `&reload=1&t=${Date.now()}` : '';
+  const url = `${NLAS_BASE_URL}nlas/advisory_region.php?region_code=${regionCode}&lang=${lang}&month=${currentMonthNum}${cacheBuster}`;
 
   try {
     const controller = new AbortController();
