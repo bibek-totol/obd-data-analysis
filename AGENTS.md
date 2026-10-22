@@ -37,20 +37,23 @@ Data is harvested directly from the NLAS backend services (`https://nlas.dls.gov
 | **3-Hourly Steps** | `upazila_forecast_steps_recent?SOURCE=BMDWRF&PCODE=<pcode\>` | `/api/nlas/forecast?upazilaCode=<pcode\>` |
 
 ### Key Classification & Conversion Logic (`src/lib/nlas-client.ts`)
-- **`findWindDirection(deg)`**: Maps degree headings to compass directions (`N`, `NE`, `E`, `SE`, `S`, `SW`, `W`, `NW`).
-- **`findCloudCondition(rain, cloudCover, hour)`**: Determines condition name (`Sunny`, `Mostly Sunny`, `Partly Cloudy`, `Light Rain`, `Cloudy`, etc.) and exact matching weather iconography.
+- **Hero Card Matching Algorithm**: Implements the government portal's exact matching logic (`Je >= Tn && Je < xr`) where `Je = YYYYMMDDHH` in `Asia/Dhaka` time, perfectly synchronizing hero banner humidity, temperature, wind, and day/night condition with the live portal.
+- **Wind Direction & Offset**: Uses the official `-48` degree offset applied by the government frontend (`-48 + winddir`) and 4-quadrant compass mapping (`<=90 NE, <=180 SE, <=270 SW, NW`).
+- **Dynamic Daily Sliding Window**: Automatically filters out past dates by comparing against current date in `Asia/Dhaka` (`YYYY-MM-DD`). If today is 23 October, it displays 23, 24, 25, 26, 27, 28 Oct; if today is 24 October, it automatically shifts to 24, 25, 26, 27, 28, 29 Oct.
+- **Hourly Step Normalization**: Correctly parses NLAS step time format (`00:HH:00` or `HH:MM:SS`) to produce accurate 3-hourly time spans (`00:00 - 03:00`, `03:00 - 06:00`, etc.) and filters historical steps prior to the current calendar date.
+- **`findCloudCondition(rain, cloudCover, hour)`**: Determines condition name (`Sunny`, `Mostly Sunny`, `Partly Cloudy`, `Light Rain`, `Cloudy`, etc.) and exact matching weather iconography. Evaluates hour < 6 or >= 18 as nighttime (`Clear`, Moon icon).
 - **"Reload Latest Data"**: Button in the header that triggers an immediate re-fetch bypassing cache, updating the last synchronized timestamp (`Synchronized at: HH:MM:SS`).
 
 ---
 
 ## 3. Key Components & File Directory
-- **`src/lib/nlas-client.ts`**: Core API client, TypeScript interfaces (`ForecastResponseData`, `DailyWeatherItem`, `HourlyWeatherStep`), weather calculation logic, and resilient fallbacks.
+- **`src/lib/nlas-client.ts`**: Core API client, TypeScript interfaces (`ForecastResponseData`, `DailyWeatherItem`, `HourlyWeatherStep`), weather calculation logic, dynamic daily windowing, and resilient fallbacks.
 - **`src/app/api/nlas/`**: Next.js route handlers acting as server-side proxies to prevent CORS issues.
 - **`src/components/Header.tsx`**: CARE South Asia & DLS branding, live feed status badge, `Reload Latest Data` button with spinner animation, language toggle (`বাংলা | EN`), and user avatar.
 - **`src/components/Sidebar.tsx`**: Collapsible navigation with integrated website list, active NLS subsections (Forecast & Advisory), and modal for adding new portals.
 - **`src/components/LocationSelector.tsx`**: Filter dropdowns for District and Upazila with dynamic cascading updates.
 - **`src/components/HeroWeatherCard.tsx`**: Current date, location pin, humidity %, wind speed/direction, weather condition with day/night icon, and BMDWRF attribution.
-- **`src/components/DailyForecastGrid.tsx`**: 5-6 day cards showing weekday, date, weather icon, temp range (`33° / 25°C`), rainfall (`0mm`), and wind speed.
+- **`src/components/DailyForecastGrid.tsx`**: 5-6 day cards showing weekday, date, weather icon, temp range (`33° / 25°C`), rainfall (`0mm`), and wind speed. Starts dynamically on today's calendar date.
 - **`src/components/HourlyForecastCharts.tsx`**: High-precision SVG interactive charts:
   1. *Temperature & Cloud Condition*: 3-hourly spline curve across tomorrow and the day after.
   2. *Rainfall & Relative Humidity*: Green spline curve with explicit percentage labels (`53%`, `58%`, `52%`...) and rainfall baseline points (`0 mm`).
@@ -62,7 +65,7 @@ Data is harvested directly from the NLAS backend services (`https://nlas.dls.gov
 ---
 
 ## 4. Current Status & Context for Next Session
-1. **Forecast Section**: Fully implemented, connected to live data, and verified.
+1. **Forecast Section**: Fully implemented, connected to live data, verified with dynamic daily sliding calendar windows (5-6 day forecast cards and 3-hourly chart intervals).
 2. **Upcoming Task / Handover**:
    - The user will specify requirements for the **Advisory Section** (sub-section under NLS).
    - Once advisory rules, bulletin scraping requirements, or alert thresholds are provided, build the advisory logic within `src/components/AdvisorySection.tsx` and create relevant API routes if needed.

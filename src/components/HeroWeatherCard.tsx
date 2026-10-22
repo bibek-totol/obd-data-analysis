@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Calendar, MapPin, Droplets, Wind, Moon, Sun, CloudRain } from 'lucide-react';
+import { Calendar, MapPin, Droplets, Wind, Moon, Sun, CloudRain, Thermometer } from 'lucide-react';
 import { ForecastResponseData } from '@/lib/nlas-client';
 
 interface HeroWeatherCardProps {
@@ -85,30 +85,82 @@ export default function HeroWeatherCard({
             </span>
           </div>
 
-          {/* Humidity Badge */}
+          {/* Stats Badges: Humidity, Temperature, Wind Speed */}
           <div style={{
-            display: 'inline-flex',
+            display: 'flex',
             alignItems: 'center',
-            gap: '12px',
-            backgroundColor: 'rgba(255, 255, 255, 0.08)',
-            backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
-            borderRadius: '10px',
-            padding: '10px 18px'
+            gap: '14px',
+            flexWrap: 'wrap'
           }}>
-            <Droplets size={22} color="#38bdf8" />
-            <div>
-              <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Relative Humidity
+            {/* Relative Humidity */}
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '10px',
+              backgroundColor: 'rgba(255, 255, 255, 0.08)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              borderRadius: '10px',
+              padding: '8px 16px'
+            }}>
+              <Droplets size={18} color="#38bdf8" />
+              <div>
+                <div style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Relative Humidity
+                </div>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: '#ffffff' }}>
+                  {current.rh} %
+                </div>
               </div>
-              <div style={{ fontSize: '18px', fontWeight: 700, color: '#ffffff' }}>
-                {current.rh} %
+            </div>
+
+            {/* Temperature */}
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '10px',
+              backgroundColor: 'rgba(255, 255, 255, 0.08)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              borderRadius: '10px',
+              padding: '8px 16px'
+            }}>
+              <Thermometer size={18} color="#f87171" />
+              <div>
+                <div style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Temperature
+                </div>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: '#ffffff' }}>
+                  {Math.round(current.temperature)} °C
+                </div>
+              </div>
+            </div>
+
+            {/* Wind Speed */}
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '10px',
+              backgroundColor: 'rgba(255, 255, 255, 0.08)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              borderRadius: '10px',
+              padding: '8px 16px'
+            }}>
+              <Wind size={18} color="#a7f3d0" />
+              <div>
+                <div style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Wind Speed
+                </div>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: '#ffffff' }}>
+                  {current.wind_speed} km/h {current.wind_direction}
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Right: Condition, Wind Speed, Data Source */}
+        {/* Right: Condition & Data Source */}
         <div style={{
           display: 'flex',
           flexDirection: 'column',
@@ -116,7 +168,7 @@ export default function HeroWeatherCard({
           justifyContent: 'space-between',
           textAlign: 'right'
         }}>
-          {/* Condition & Moon/Sun Icon */}
+          {/* Condition & Sun/Cloud Icon */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -124,56 +176,38 @@ export default function HeroWeatherCard({
             marginBottom: '20px'
           }}>
             <div style={{
-              width: '48px',
-              height: '48px',
+              width: '56px',
+              height: '56px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
             }}>
-              {current.is_day ? (
-                <Sun size={42} color="#fbbf24" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {current.condition_image ? (
+                <img src={current.condition_image} alt={current.condition_name} style={{ width: '52px', height: '52px', objectFit: 'contain' }} />
+              ) : current.is_day ? (
+                <Sun size={48} color="#fbbf24" />
               ) : (
-                <Moon size={38} color="#e2e8f0" />
+                <Moon size={42} color="#e2e8f0" />
               )}
             </div>
             <div>
               <div style={{
-                fontSize: '26px',
+                fontSize: '24px',
                 fontWeight: 800,
                 letterSpacing: '0.04em',
                 color: '#ffffff'
               }}>
                 {current.condition_name}
               </div>
-              <div style={{ fontSize: '13px', color: '#94a3b8', fontWeight: 500 }}>
-                {current.temperature}°C (High: {current.temp_max}° / Low: {current.temp_min}°)
-              </div>
             </div>
-          </div>
-
-          {/* Wind Speed & Direction */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            backgroundColor: 'rgba(255, 255, 255, 0.08)',
-            backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
-            borderRadius: '10px',
-            padding: '8px 16px',
-            marginBottom: '16px'
-          }}>
-            <Wind size={18} color="#a7f3d0" />
-            <span style={{ fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>
-              Wind Speed: {current.wind_speed} km/h {current.wind_direction}
-            </span>
           </div>
 
           {/* Data Source attribution */}
           <div style={{
             fontSize: '11px',
             color: '#94a3b8',
-            fontFamily: 'monospace'
+            fontFamily: "'Fira Code', monospace"
           }}>
             Data source: {data.source} | {data.updated_at}
           </div>

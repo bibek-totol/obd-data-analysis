@@ -1,7 +1,6 @@
 'use client';
 
-import React from 'react';
-import { Thermometer, CloudRain, Wind, Navigation } from 'lucide-react';
+import { Thermometer, CloudRain, Wind, Navigation, Droplets } from 'lucide-react';
 import { DailyWeatherItem } from '@/lib/nlas-client';
 
 interface DailyForecastGridProps {
@@ -158,17 +157,31 @@ export default function DailyForecastGrid({ daily }: DailyForecastGridProps) {
                 <span>{item.rf}mm</span>
               </div>
 
-              {/* Metric 3: Wind */}
+              {/* Metric 3: Wind Gust (matches NLAS) */}
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '5px',
                 fontSize: '12px',
                 fontWeight: 600,
-                color: '#475569'
+                color: '#475569',
+                marginBottom: '8px'
               }}>
                 <Navigation size={13} color="#059669" style={{ transform: 'rotate(45deg)' }} />
-                <span>{item.windspd} km/h {item.dir_name}</span>
+                <span>{item.windgust || item.windspd} km/h {item.dir_name}</span>
+              </div>
+
+              {/* Metric 4: Relative Humidity (matches NLAS 4th row) */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                fontSize: '12px',
+                fontWeight: 600,
+                color: '#0284c7'
+              }}>
+                <Droplets size={13} color="#0284c7" />
+                <span>{item.rh}%</span>
               </div>
             </div>
           );

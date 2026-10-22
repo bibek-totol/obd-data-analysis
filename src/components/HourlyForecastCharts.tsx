@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { HourlyWeatherStep } from '@/lib/nlas-client';
+import { HourlyWeatherStep, parseDateFromStepTime, parseHourFromStepTime, MONTHS_FULL } from '@/lib/nlas-client';
 
 interface HourlyForecastChartsProps {
   hourly: HourlyWeatherStep[];
@@ -31,14 +31,56 @@ function getSplinePath(points: { x: number; y: number }[]): string {
   return path;
 }
 
+function formatStepDateTime(step: HourlyWeatherStep) {
+  try {
+    if (step.step_start) {
+      const parsed = parseDateFromStepTime(step.step_start);
+      const day = parsed.day;
+      const month = MONTHS_FULL[parsed.month] || MONTHS_FULL[new Date().getMonth()];
+      const startH = String(parseHourFromStepTime(step.step_start)).padStart(2, '0') + ':00';
+      let endH = '00:00';
+      if (step.step_end) {
+        endH = String(parseHourFromStepTime(step.step_end)).padStart(2, '0') + ':00';
+      }
+
+      return {
+        dateFormatted: `Date: ${day} ${month}`,
+        timeRange: `${startH} - ${endH}`
+      };
+    }
+
+    // Fallback: parse from timeLabel if step_start is unavailable or non-standard
+    if (step.timeLabel) {
+      const parts = step.timeLabel.split(' ');
+      if (parts.length >= 2) {
+        return {
+          dateFormatted: `Date: ${parts[0]} ${parts[1]}`,
+          timeRange: parts.slice(2).join(' ') || '00:00 - 03:00'
+        };
+      }
+    }
+  } catch {
+    // ignore error and proceed to dynamic fallback
+  }
+
+  // Fully dynamic fallback derived from current date - never hardcoded
+  const fallbackNow = new Date();
+  return {
+    dateFormatted: `Date: ${fallbackNow.getDate()} ${MONTHS_FULL[fallbackNow.getMonth()]}`,
+    timeRange: '00:00 - 03:00'
+  };
+}
+
 export default function HourlyForecastCharts({
   hourly,
   upazilaName
 }: HourlyForecastChartsProps) {
-  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  // Independent hover indices for each chart
+  const [hoverTempIndex, setHoverTempIndex] = useState<number | null>(null);
+  const [hoverRhIndex, setHoverRhIndex] = useState<number | null>(null);
+  const [hoverGustIndex, setHoverGustIndex] = useState<number | null>(null);
 
-  // Take the 16 steps representing tomorrow & day after tomorrow (or available steps)
-  // Filtering for steps that represent the 48-hour 3-hourly forecast
+  // Take the 16 steps representing tomorrow & day after tomorrow
   const steps = hourly.slice(0, 16);
 
   if (!steps || steps.length === 0) {
@@ -97,6 +139,18 @@ export default function HourlyForecastCharts({
 
   const gustSpline = getSplinePath(gustPoints);
 
+  // Helper to compute modal/tooltip box coordinates ensuring it never clips
+  const getTooltipCoords = (x: number, y: number, width: number, height: number) => {
+    let boxX = x - width / 2;
+    if (boxX < paddingLeft) boxX = paddingLeft;
+    if (boxX + width > svgWidth - paddingRight) boxX = svgWidth - paddingRight - width;
+
+    let boxY = y - height - 12;
+    if (boxY < paddingTop) boxY = y + 14;
+
+    return { boxX, boxY };
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginBottom: '32px' }}>
       
@@ -127,6 +181,19 @@ export default function HourlyForecastCharts({
             viewBox={`0 0 ${svgWidth} ${svgHeight}`}
             style={{ width: '100%', minWidth: '850px', height: 'auto', display: 'block' }}
           >
+            {/* Common Definitions */}
+            <defs>
+              <linearGradient id="tempGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.25" />
+                <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.0" />
+              </linearGradient>
+
+              {/* Highcharts-like Box Shadow Filter */}
+              <filter id="modalShadow" x="-10%" y="-10%" width="125%" height="125%">
+                <feDropShadow dx="1" dy="2" stdDeviation="2.5" floodColor="#000000" floodOpacity="0.2" />
+              </filter>
+            </defs>
+
             {/* Grid Lines */}
             {[0, 0.25, 0.5, 0.75, 1].map((pct, idx) => {
               const y = paddingTop + pct * plotHeight;
@@ -158,7 +225,6 @@ export default function HourlyForecastCharts({
             {/* Vertical grid lines & X-Axis Labels */}
             {steps.map((s, idx) => {
               const x = paddingLeft + (idx / (steps.length - 1)) * plotWidth;
-              // Parse date and time from timeLabel
               const parts = s.timeLabel.split(' ');
               const dateText = parts.slice(0, 2).join(' ');
               const timeText = parts.slice(2).join(' ');
@@ -210,14 +276,6 @@ export default function HourlyForecastCharts({
               Temperature & Cloud Condition
             </text>
 
-            {/* Temperature Spline Area Gradient */}
-            <defs>
-              <linearGradient id="tempGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.25" />
-                <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.0" />
-              </linearGradient>
-            </defs>
-
             {/* Temperature Area Fill */}
             <path
               d={`${tempSpline} L ${svgWidth - paddingRight} ${paddingTop + plotHeight} L ${paddingLeft} ${paddingTop + plotHeight} Z`}
@@ -233,51 +291,119 @@ export default function HourlyForecastCharts({
               strokeLinecap="round"
             />
 
-            {/* Data Points */}
+            {/* Data Points & Halo on Hover */}
             {tempPoints.map((pt) => {
-              const isHovered = hoverIndex === pt.idx;
+              const isHovered = hoverTempIndex === pt.idx;
               return (
                 <g
                   key={pt.idx}
-                  onMouseEnter={() => setHoverIndex(pt.idx)}
-                  onMouseLeave={() => setHoverIndex(null)}
+                  onMouseEnter={() => setHoverTempIndex(pt.idx)}
+                  onMouseLeave={() => setHoverTempIndex(null)}
                   style={{ cursor: 'pointer' }}
                 >
+                  {/* Outer animated halo ring when hovered */}
+                  {isHovered && (
+                    <circle
+                      cx={pt.x}
+                      cy={pt.y}
+                      r={9}
+                      fill="rgba(56, 189, 248, 0.35)"
+                    />
+                  )}
+
+                  {/* Core data node */}
                   <circle
                     cx={pt.x}
                     cy={pt.y}
-                    r={isHovered ? 6 : 4}
+                    r={isHovered ? 5 : 4}
                     fill="#38bdf8"
                     stroke="#ffffff"
                     strokeWidth="2"
-                    style={{ transition: 'r 0.15s ease' }}
                   />
-                  {/* Point value tag if hovered */}
-                  {isHovered && (
-                    <g>
-                      <rect
-                        x={pt.x - 30}
-                        y={pt.y - 28}
-                        width="60"
-                        height="20"
-                        rx="4"
-                        fill="#0f172a"
-                      />
-                      <text
-                        x={pt.x}
-                        y={pt.y - 14}
-                        textAnchor="middle"
-                        fontSize="10"
-                        fontWeight="700"
-                        fill="#ffffff"
-                      >
-                        {pt.step.temp_avg}°C
-                      </text>
-                    </g>
-                  )}
+
+                  {/* Wide invisible hit area for easy mouse tracking */}
+                  <circle
+                    cx={pt.x}
+                    cy={pt.y}
+                    r={18}
+                    fill="transparent"
+                  />
                 </g>
               );
             })}
+
+            {/* Exact Modal / Tooltip Box matching Screenshot 1 */}
+            {hoverTempIndex !== null && (() => {
+              const pt = tempPoints[hoverTempIndex];
+              if (!pt) return null;
+              const dt = formatStepDateTime(pt.step);
+              const boxW = 158;
+              const boxH = 68;
+              const { boxX, boxY } = getTooltipCoords(pt.x, pt.y, boxW, boxH);
+
+              return (
+                <g style={{ pointerEvents: 'none' }}>
+                  {/* Modal box background */}
+                  <rect
+                    x={boxX}
+                    y={boxY}
+                    width={boxW}
+                    height={boxH}
+                    rx={3}
+                    fill="#cdcdcd"
+                    stroke="#666666"
+                    strokeWidth="1"
+                    filter="url(#modalShadow)"
+                  />
+
+                  {/* Line 1: Date */}
+                  <text
+                    x={boxX + 9}
+                    y={boxY + 16}
+                    fontSize="10"
+                    fontWeight="700"
+                    fill="#111827"
+                    fontFamily="sans-serif"
+                  >
+                    {dt.dateFormatted}
+                  </text>
+
+                  {/* Line 2: Time range */}
+                  <text
+                    x={boxX + 9}
+                    y={boxY + 30}
+                    fontSize="9.5"
+                    fontWeight="700"
+                    fill="#1f2937"
+                    fontFamily="sans-serif"
+                  >
+                    {dt.timeRange}
+                  </text>
+
+                  {/* Line 3: Temperature */}
+                  <text
+                    x={boxX + 9}
+                    y={boxY + 45}
+                    fontSize="9.5"
+                    fill="#1f2937"
+                    fontFamily="sans-serif"
+                  >
+                    Temperature: <tspan fontWeight="700">{pt.step.temp_avg} °C</tspan>
+                  </text>
+
+                  {/* Line 4: Cloud Condition */}
+                  <text
+                    x={boxX + 9}
+                    y={boxY + 60}
+                    fontSize="9.5"
+                    fill="#1f2937"
+                    fontFamily="sans-serif"
+                  >
+                    Cloud Condition: <tspan fontWeight="700">{pt.step.cloud_name}</tspan>
+                  </text>
+                </g>
+              );
+            })()}
           </svg>
         </div>
 
@@ -319,6 +445,17 @@ export default function HourlyForecastCharts({
             viewBox={`0 0 ${svgWidth} ${svgHeight}`}
             style={{ width: '100%', minWidth: '850px', height: 'auto', display: 'block' }}
           >
+            <defs>
+              <linearGradient id="rhGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#10b981" stopOpacity="0.2" />
+                <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
+              </linearGradient>
+
+              <filter id="modalShadowRh" x="-10%" y="-10%" width="125%" height="125%">
+                <feDropShadow dx="1" dy="2" stdDeviation="2.5" floodColor="#000000" floodOpacity="0.2" />
+              </filter>
+            </defs>
+
             {/* Grid Lines */}
             {[0, 0.25, 0.5, 0.75, 1].map((pct, idx) => {
               const y = paddingTop + pct * plotHeight;
@@ -402,13 +539,6 @@ export default function HourlyForecastCharts({
             </text>
 
             {/* Relative Humidity Spline Area */}
-            <defs>
-              <linearGradient id="rhGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#10b981" stopOpacity="0.2" />
-                <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
-              </linearGradient>
-            </defs>
-
             <path
               d={`${rhSpline} L ${svgWidth - paddingRight} ${paddingTop + plotHeight} L ${paddingLeft} ${paddingTop + plotHeight} Z`}
               fill="url(#rhGradient)"
@@ -423,18 +553,36 @@ export default function HourlyForecastCharts({
               strokeLinecap="round"
             />
 
-            {/* RH Nodes & Exact percentage labels matching screenshot 3! */}
+            {/* RH Nodes & Exact percentage labels matching screenshot 3 */}
             {rhPoints.map((pt) => {
+              const isHovered = hoverRhIndex === pt.idx;
               return (
-                <g key={pt.idx}>
+                <g
+                  key={pt.idx}
+                  onMouseEnter={() => setHoverRhIndex(pt.idx)}
+                  onMouseLeave={() => setHoverRhIndex(null)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  {/* Halo on hover */}
+                  {isHovered && (
+                    <circle
+                      cx={pt.x}
+                      cy={pt.y}
+                      r={9}
+                      fill="rgba(16, 185, 129, 0.35)"
+                    />
+                  )}
+
+                  {/* Node */}
                   <circle
                     cx={pt.x}
                     cy={pt.y}
-                    r={4}
+                    r={isHovered ? 5 : 4}
                     fill="#10b981"
                     stroke="#ffffff"
                     strokeWidth="2"
                   />
+
                   {/* Percentage label directly above node */}
                   <text
                     x={pt.x}
@@ -466,9 +614,90 @@ export default function HourlyForecastCharts({
                   >
                     {pt.step.rf} mm
                   </text>
+
+                  {/* Wide hit area */}
+                  <circle
+                    cx={pt.x}
+                    cy={pt.y}
+                    r={18}
+                    fill="transparent"
+                  />
                 </g>
               );
             })}
+
+            {/* Exact Modal / Tooltip Box matching Screenshot 3 */}
+            {hoverRhIndex !== null && (() => {
+              const pt = rhPoints[hoverRhIndex];
+              if (!pt) return null;
+              const dt = formatStepDateTime(pt.step);
+              const boxW = 158;
+              const boxH = 68;
+              const { boxX, boxY } = getTooltipCoords(pt.x, pt.y, boxW, boxH);
+
+              return (
+                <g style={{ pointerEvents: 'none' }}>
+                  {/* Modal box background */}
+                  <rect
+                    x={boxX}
+                    y={boxY}
+                    width={boxW}
+                    height={boxH}
+                    rx={3}
+                    fill="#cdcdcd"
+                    stroke="#666666"
+                    strokeWidth="1"
+                    filter="url(#modalShadowRh)"
+                  />
+
+                  {/* Line 1: Date */}
+                  <text
+                    x={boxX + 9}
+                    y={boxY + 16}
+                    fontSize="10"
+                    fontWeight="700"
+                    fill="#111827"
+                    fontFamily="sans-serif"
+                  >
+                    {dt.dateFormatted}
+                  </text>
+
+                  {/* Line 2: Time range */}
+                  <text
+                    x={boxX + 9}
+                    y={boxY + 30}
+                    fontSize="9.5"
+                    fontWeight="700"
+                    fill="#1f2937"
+                    fontFamily="sans-serif"
+                  >
+                    {dt.timeRange}
+                  </text>
+
+                  {/* Line 3: Rainfall */}
+                  <text
+                    x={boxX + 9}
+                    y={boxY + 45}
+                    fontSize="9.5"
+                    fill="#1f2937"
+                    fontFamily="sans-serif"
+                  >
+                    Rainfall: <tspan fontWeight="700">{pt.step.rf} mm</tspan>
+                  </text>
+
+                  {/* Line 4: Relative Humidity */}
+                  <text
+                    x={boxX + 9}
+                    y={boxY + 60}
+                    fontSize="9.5"
+                    fill="#1f2937"
+                    fontFamily="sans-serif"
+                  >
+                    Relative Humidity: <tspan fontWeight="700">{pt.step.rh} %</tspan>
+                  </text>
+                </g>
+              );
+            })()}
           </svg>
         </div>
 
@@ -522,6 +751,17 @@ export default function HourlyForecastCharts({
             viewBox={`0 0 ${svgWidth} ${svgHeight}`}
             style={{ width: '100%', minWidth: '850px', height: 'auto', display: 'block' }}
           >
+            <defs>
+              <linearGradient id="gustGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#14b8a6" stopOpacity="0.25" />
+                <stop offset="100%" stopColor="#14b8a6" stopOpacity="0.0" />
+              </linearGradient>
+
+              <filter id="modalShadowGust" x="-10%" y="-10%" width="125%" height="125%">
+                <feDropShadow dx="1" dy="2" stdDeviation="2.5" floodColor="#000000" floodOpacity="0.2" />
+              </filter>
+            </defs>
+
             {/* Grid Lines */}
             {[0, 0.25, 0.5, 0.75, 1].map((pct, idx) => {
               const y = paddingTop + pct * plotHeight;
@@ -605,13 +845,6 @@ export default function HourlyForecastCharts({
             </text>
 
             {/* Windgust Area Gradient */}
-            <defs>
-              <linearGradient id="gustGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#14b8a6" stopOpacity="0.25" />
-                <stop offset="100%" stopColor="#14b8a6" stopOpacity="0.0" />
-              </linearGradient>
-            </defs>
-
             <path
               d={`${gustSpline} L ${svgWidth - paddingRight} ${paddingTop + plotHeight} L ${paddingLeft} ${paddingTop + plotHeight} Z`}
               fill="url(#gustGradient)"
@@ -628,16 +861,35 @@ export default function HourlyForecastCharts({
 
             {/* Windgust Nodes & Wind Direction Indicators */}
             {gustPoints.map((pt) => {
+              const isHovered = hoverGustIndex === pt.idx;
               return (
-                <g key={pt.idx}>
+                <g
+                  key={pt.idx}
+                  onMouseEnter={() => setHoverGustIndex(pt.idx)}
+                  onMouseLeave={() => setHoverGustIndex(null)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  {/* Halo on hover */}
+                  {isHovered && (
+                    <circle
+                      cx={pt.x}
+                      cy={pt.y}
+                      r={9}
+                      fill="rgba(20, 184, 166, 0.35)"
+                    />
+                  )}
+
+                  {/* Node */}
                   <circle
                     cx={pt.x}
                     cy={pt.y}
-                    r={4}
+                    r={isHovered ? 5 : 4}
                     fill="#14b8a6"
                     stroke="#ffffff"
                     strokeWidth="2"
                   />
+
+                  {/* Direction label */}
                   <text
                     x={pt.x}
                     y={pt.y - 9}
@@ -648,9 +900,79 @@ export default function HourlyForecastCharts({
                   >
                     {pt.step.winddir_name}
                   </text>
+
+                  {/* Wide hit area */}
+                  <circle
+                    cx={pt.x}
+                    cy={pt.y}
+                    r={18}
+                    fill="transparent"
+                  />
                 </g>
               );
             })}
+
+            {/* Exact Modal / Tooltip Box matching Screenshot 2 */}
+            {hoverGustIndex !== null && (() => {
+              const pt = gustPoints[hoverGustIndex];
+              if (!pt) return null;
+              const dt = formatStepDateTime(pt.step);
+              const boxW = 158;
+              const boxH = 54;
+              const { boxX, boxY } = getTooltipCoords(pt.x, pt.y, boxW, boxH);
+
+              return (
+                <g style={{ pointerEvents: 'none' }}>
+                  {/* Modal box background */}
+                  <rect
+                    x={boxX}
+                    y={boxY}
+                    width={boxW}
+                    height={boxH}
+                    rx={3}
+                    fill="#cdcdcd"
+                    stroke="#666666"
+                    strokeWidth="1"
+                    filter="url(#modalShadowGust)"
+                  />
+
+                  {/* Line 1: Date */}
+                  <text
+                    x={boxX + 9}
+                    y={boxY + 16}
+                    fontSize="10"
+                    fontWeight="700"
+                    fill="#111827"
+                    fontFamily="sans-serif"
+                  >
+                    {dt.dateFormatted}
+                  </text>
+
+                  {/* Line 2: Time range */}
+                  <text
+                    x={boxX + 9}
+                    y={boxY + 30}
+                    fontSize="9.5"
+                    fontWeight="700"
+                    fill="#1f2937"
+                    fontFamily="sans-serif"
+                  >
+                    {dt.timeRange}
+                  </text>
+
+                  {/* Line 3: Windgust */}
+                  <text
+                    x={boxX + 9}
+                    y={boxY + 45}
+                    fontSize="9.5"
+                    fill="#1f2937"
+                    fontFamily="sans-serif"
+                  >
+                    Windgust: <tspan fontWeight="700">{pt.step.windgust} km/h {pt.step.winddir_name}</tspan>
+                  </text>
+                </g>
+              );
+            })()}
           </svg>
         </div>
 
