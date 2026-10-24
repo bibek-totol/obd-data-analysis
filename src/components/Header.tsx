@@ -4,12 +4,14 @@ import React from 'react';
 import { RefreshCw } from 'lucide-react';
 
 interface HeaderProps {
+  activeSection?: 'forecast' | 'advisory';
   onReload: () => void;
   isLoading: boolean;
   lastUpdated?: string;
 }
 
 export default function Header({
+  activeSection = 'forecast',
   onReload,
   isLoading,
   lastUpdated
@@ -64,12 +66,16 @@ export default function Header({
 
       {/* Right: Actions, Refresh, Profile */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-        {/* Reload Latest Data Button */}
+        {/* Context-Aware Reload Button */}
         <button
           onClick={onReload}
           disabled={isLoading}
-          id="btn-reload-latest-data"
-          title="Click to fetch fresh real-time 5-day weather data"
+          id={activeSection === 'forecast' ? 'btn-reload-latest-forecast' : 'btn-reload-latest-advisory'}
+          title={
+            activeSection === 'forecast'
+              ? 'Click to fetch fresh real-time weather forecast'
+              : 'Click to fetch fresh real-time regional advisory directives'
+          }
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -103,7 +109,11 @@ export default function Header({
               animation: isLoading ? 'spin 0.8s linear infinite' : 'none'
             }}
           />
-          <span>{isLoading ? 'Reloading...' : 'Reload Latest Data'}</span>
+          <span>
+            {isLoading
+              ? (activeSection === 'forecast' ? 'Reloading Forecast...' : 'Reloading Advisory...')
+              : (activeSection === 'forecast' ? 'Reload Latest Forecast' : 'Reload Latest Advisory')}
+          </span>
         </button>
 
         {/* Last Updated Timestamp */}

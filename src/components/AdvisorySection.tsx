@@ -32,6 +32,9 @@ import {
 interface AdvisorySectionProps {
   districtName?: string;
   upazilaName?: string;
+  onRegisterReload?: (reloadFn: () => void) => void;
+  onLoadingChange?: (loading: boolean) => void;
+  onLastReloadTimeChange?: (time: string) => void;
 }
 
 const MONTHS_LIST = [
@@ -51,7 +54,10 @@ const MONTHS_LIST = [
 
 export default function AdvisorySection({
   districtName = 'Dhaka',
-  upazilaName = 'Adabor'
+  upazilaName = 'Adabor',
+  onRegisterReload,
+  onLoadingChange,
+  onLastReloadTimeChange
 }: AdvisorySectionProps) {
   // Determine current calendar month in Asia/Dhaka
   const getCurrentMonth = () => {
@@ -140,7 +146,7 @@ export default function AdvisorySection({
   }, [selectedZoneCode, lang, selectedMonth]);
 
   // Handle Manual Real-Time Reload
-  const handleReloadAdvisory = async () => {
+  const handleReloadAdvisory = React.useCallback(async () => {
     setIsReloading(true);
     setErrorMsg(null);
     const cacheKey = `${selectedZoneCode}_${lang}_${selectedMonth}`;
@@ -154,7 +160,9 @@ export default function AdvisorySection({
         cacheRef.current[cacheKey] = json.data;
         setAdvisoryData(json.data);
         const now = new Date();
-        setLastReloadedTime(now.toLocaleTimeString());
+        const timeStr = now.toLocaleTimeString();
+        setLastReloadedTime(timeStr);
+        onLastReloadTimeChange?.(timeStr);
       } else {
         throw new Error(json.error || 'Failed to fetch real-time advisory data');
       }
@@ -164,7 +172,15 @@ export default function AdvisorySection({
     } finally {
       setIsReloading(false);
     }
-  };
+  }, [selectedZoneCode, lang, selectedMonth, onLastReloadTimeChange]);
+
+  useEffect(() => {
+    onRegisterReload?.(handleReloadAdvisory);
+  }, [onRegisterReload, handleReloadAdvisory]);
+
+  useEffect(() => {
+    onLoadingChange?.(isReloading || isLoading);
+  }, [isReloading, isLoading, onLoadingChange]);
 
   // Handle Copy Directives
   const handleCopyDirectives = () => {
@@ -276,16 +292,6 @@ export default function AdvisorySection({
               <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
                 Region Wise Monthly Advisory
               </h2>
-              <span style={{
-                fontSize: '11px',
-                fontWeight: 700,
-                padding: '2px 8px',
-                borderRadius: '12px',
-                backgroundColor: '#dcfce7',
-                color: '#166534'
-              }}>
-                7 Agro-Ecological Zones
-              </span>
               {lastReloadedTime && (
                 <span style={{
                   display: 'inline-flex',
@@ -310,50 +316,44 @@ export default function AdvisorySection({
           </div>
         </div>
 
-        {/* Global Controls: Month, Language, Actions */}
+        {/* Global Controls: Region, Month, Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          {/* Reload Latest Advisory Button */}
-          <button
-            onClick={handleReloadAdvisory}
-            disabled={isReloading || isLoading}
-            id="btn-reload-latest-advisory"
-            title="Fetch real-time dynamic advisory data directly from DLS government server"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              backgroundColor: isReloading ? '#e2e8f0' : '#006a4e',
-              color: isReloading ? '#64748b' : '#ffffff',
-              padding: '7px 16px',
-              borderRadius: '8px',
-              fontSize: '12px',
-              fontWeight: 700,
-              border: 'none',
-              cursor: isReloading ? 'not-allowed' : 'pointer',
-              boxShadow: isReloading ? 'none' : '0 2px 8px rgba(0, 106, 78, 0.25)',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={(e) => {
-              if (!isReloading) {
-                e.currentTarget.style.backgroundColor = '#00523d';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!isReloading) {
-                e.currentTarget.style.backgroundColor = '#006a4e';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }
-            }}
-          >
-            <RefreshCw
-              size={14}
+          {/* Agro-Ecological Zone / Region Selector */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            backgroundColor: '#f8fafc',
+            border: '1px solid #cbd5e1',
+            borderRadius: '10px',
+            padding: '6px 12px',
+            fontSize: '13px',
+            fontWeight: 600,
+            color: '#334155'
+          }}>
+            <Layers size={15} color="#006a4e" />
+            <select
+              value={selectedZoneCode}
+              onChange={(e) => setSelectedZoneCode(parseInt(e.target.value, 10))}
+              id="select-advisory-zone"
+              aria-label="Select Regional Zone"
               style={{
-                animation: isReloading ? 'spin 0.8s linear infinite' : 'none'
+                border: 'none',
+                backgroundColor: 'transparent',
+                fontWeight: 600,
+                fontSize: '13px',
+                color: '#0f172a',
+                cursor: 'pointer',
+                outline: 'none'
               }}
-            />
-            <span>{isReloading ? 'Updating Advisory...' : 'Reload Latest Advisory'}</span>
-          </button>
+            >
+              {REGIONAL_ZONES.map(z => (
+                <option key={z.code} value={z.code}>
+                  {z.name} ({lang === 'bn' ? z.nameBn : `Zone ${z.code}`})
+                </option>
+              ))}
+            </select>
+          </div>
 
           {/* Month Selector */}
           <div style={{
@@ -389,50 +389,6 @@ export default function AdvisorySection({
                 </option>
               ))}
             </select>
-          </div>
-
-          {/* Bilingual Language Switcher */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            backgroundColor: '#f1f5f9',
-            border: '1px solid #e2e8f0',
-            borderRadius: '20px',
-            padding: '2px'
-          }}>
-            <button
-              onClick={() => setLang('en')}
-              style={{
-                padding: '5px 12px',
-                borderRadius: '16px',
-                border: 'none',
-                backgroundColor: lang === 'en' ? '#006a4e' : 'transparent',
-                color: lang === 'en' ? '#ffffff' : '#64748b',
-                fontWeight: 700,
-                fontSize: '12px',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              English
-            </button>
-            <button
-              onClick={() => setLang('bn')}
-              style={{
-                padding: '5px 12px',
-                borderRadius: '16px',
-                border: 'none',
-                backgroundColor: lang === 'bn' ? '#006a4e' : 'transparent',
-                color: lang === 'bn' ? '#ffffff' : '#64748b',
-                fontWeight: 700,
-                fontSize: '12px',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                fontFamily: 'var(--font-bn)'
-              }}
-            >
-              বাংলা
-            </button>
           </div>
 
           {/* Copy Directives Button */}
@@ -484,156 +440,6 @@ export default function AdvisorySection({
         </div>
       </div>
 
-      {/* 7 Agro-Ecological Zones Selector Cards */}
-      <div>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '10px',
-          paddingLeft: '4px'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#64748b' }}>
-              Select Agro-Ecological Zone
-            </span>
-            <span style={{ fontSize: '11px', color: '#94a3b8' }}>• Click any zone to load regional metrics</span>
-          </div>
-          {isDistrictInCurrentZone && (
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '11px',
-              fontWeight: 700,
-              color: '#006a4e',
-              backgroundColor: '#e8f5f0',
-              padding: '2px 10px',
-              borderRadius: '12px'
-            }}>
-              <MapPin size={12} />
-              <span>Current Location: {districtName} is in {currentZone.name}</span>
-            </div>
-          )}
-        </div>
-
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: '10px'
-        }}>
-          {REGIONAL_ZONES.map(zone => {
-            const isSelected = zone.code === selectedZoneCode;
-            const containsDistrict = zone.districts.some(
-              d => d.toLowerCase().includes(districtName.toLowerCase().trim()) || districtName.toLowerCase().trim().includes(d.toLowerCase())
-            );
-
-            return (
-              <button
-                key={zone.code}
-                onClick={() => setSelectedZoneCode(zone.code)}
-                id={`btn-zone-${zone.code}`}
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'flex-start',
-                  padding: '12px 14px',
-                  borderRadius: '12px',
-                  backgroundColor: isSelected ? '#ffffff' : '#f8fafc',
-                  border: isSelected ? `2px solid ${zone.color}` : '1px solid #e2e8f0',
-                  boxShadow: isSelected ? `0 4px 14px ${zone.color}25` : 'none',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}
-                onMouseEnter={(e) => {
-                  if (!isSelected) {
-                    e.currentTarget.style.backgroundColor = '#ffffff';
-                    e.currentTarget.style.borderColor = '#cbd5e1';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isSelected) {
-                    e.currentTarget.style.backgroundColor = '#f8fafc';
-                    e.currentTarget.style.borderColor = '#e2e8f0';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }
-                }}
-              >
-                {/* Active Indicator Top Stripe */}
-                {isSelected && (
-                  <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: '3px',
-                    backgroundColor: zone.color
-                  }} />
-                )}
-
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: '6px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{
-                      width: '10px',
-                      height: '10px',
-                      borderRadius: '50%',
-                      backgroundColor: zone.color
-                    }} />
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>
-                      Zone {zone.code}
-                    </span>
-                  </div>
-
-                  {containsDistrict && (
-                    <span style={{
-                      fontSize: '9px',
-                      fontWeight: 800,
-                      backgroundColor: '#e8f5f0',
-                      color: '#006a4e',
-                      padding: '1px 6px',
-                      borderRadius: '8px'
-                    }}>
-                      You
-                    </span>
-                  )}
-                </div>
-
-                <div style={{
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  color: isSelected ? '#0f172a' : '#334155',
-                  lineHeight: 1.2
-                }}>
-                  {zone.name}
-                </div>
-
-                <div style={{
-                  fontSize: '11px',
-                  color: '#64748b',
-                  marginTop: '2px',
-                  fontFamily: 'var(--font-bn)'
-                }}>
-                  {zone.nameBn}
-                </div>
-
-                <div style={{
-                  fontSize: '10px',
-                  color: '#94a3b8',
-                  marginTop: '8px',
-                  fontWeight: 600
-                }}>
-                  {zone.districts.length} Districts
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
       {/* ======================================================== */}
       {/* FEATURED CLIMATOLOGY CARD WITH THE GRAPH CHART            */}
       {/* Directly places the graph chart below the districts list */}
@@ -655,6 +461,18 @@ export default function AdvisorySection({
               <h3 style={{ fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
                 Climatology for {currentZone.name}
               </h3>
+              {isDistrictInCurrentZone && (
+                <span style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  color: '#006a4e',
+                  backgroundColor: '#e8f5f0',
+                  padding: '2px 8px',
+                  borderRadius: '10px'
+                }}>
+                  Current: {districtName}
+                </span>
+              )}
             </div>
             <p style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
               Long-term 12-month climate averages for rainfall and temperature dynamics
@@ -1032,8 +850,54 @@ export default function AdvisorySection({
             </p>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '12px', color: '#006a4e', fontWeight: 700, backgroundColor: '#e8f5f0', padding: '4px 12px', borderRadius: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            {/* Bilingual Language Switcher (Bangla / English) */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              backgroundColor: '#f1f5f9',
+              border: '1px solid #cbd5e1',
+              borderRadius: '20px',
+              padding: '2px'
+            }}>
+              <button
+                onClick={() => setLang('en')}
+                id="btn-lang-en"
+                style={{
+                  padding: '5px 14px',
+                  borderRadius: '16px',
+                  border: 'none',
+                  backgroundColor: lang === 'en' ? '#006a4e' : 'transparent',
+                  color: lang === 'en' ? '#ffffff' : '#64748b',
+                  fontWeight: 700,
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                English
+              </button>
+              <button
+                onClick={() => setLang('bn')}
+                id="btn-lang-bn"
+                style={{
+                  padding: '5px 14px',
+                  borderRadius: '16px',
+                  border: 'none',
+                  backgroundColor: lang === 'bn' ? '#006a4e' : 'transparent',
+                  color: lang === 'bn' ? '#ffffff' : '#64748b',
+                  fontWeight: 700,
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  fontFamily: 'var(--font-bn)'
+                }}
+              >
+                বাংলা
+              </button>
+            </div>
+
+            <span style={{ fontSize: '12px', color: '#006a4e', fontWeight: 700, backgroundColor: '#e8f5f0', padding: '5px 12px', borderRadius: '12px', border: '1px solid #a7f3d0' }}>
               {isLoading ? 'Updating...' : `Total Directives: ${(advisoryData?.livestock?.length || 0) + (advisoryData?.poultry?.length || 0)}`}
             </span>
           </div>

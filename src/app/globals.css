@@ -17,7 +17,7 @@
   --bg-card: #ffffff;
   --bg-sidebar: #ffffff;
   --bg-sidebar-active: #f0fdf4;
-  --bg-hero: linear-gradient(135deg, #1e293b 0%, #334155 50%, #1e3a34 100%);
+  --bg-hero: linear-gradient(135deg, #0d2820 0%, #12392e 35%, #184c3e 70%, #0f3026 100%);
   
   --text-main: #0f172a;
   --text-muted: #64748b;
@@ -116,4 +116,29 @@ input, select {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+/* Print Optimization */
+@media print {
+  header,
+  aside,
+  button,
+  #btn-reload-latest-forecast,
+  #btn-reload-latest-advisory,
+  #btn-print-forecast,
+  #btn-print-advisory,
+  #btn-copy-advisory {
+    display: none !important;
+  }
+
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
 }

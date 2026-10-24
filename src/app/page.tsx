@@ -15,13 +15,12 @@ import {
   DEFAULT_DISTRICTS,
   DEFAULT_UPAZILAS
 } from '@/lib/nlas-client';
-import { AlertCircle, RefreshCw, CheckCircle2, Info } from 'lucide-react';
+import { AlertCircle, RefreshCw, CheckCircle2, Printer } from 'lucide-react';
 
 export default function HomePage() {
   // Navigation State
   const [activeSection, setActiveSection] = useState<ActiveSection>('forecast');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-
 
   // Location & Data States
   const [districts, setDistricts] = useState<DistrictItem[]>(DEFAULT_DISTRICTS);
@@ -34,6 +33,22 @@ export default function HomePage() {
   const [isLoadingUpazilas, setIsLoadingUpazilas] = useState<boolean>(false);
   const [lastReloadTime, setLastReloadTime] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Advisory Section Reload States
+  const [isAdvisoryLoading, setIsAdvisoryLoading] = useState<boolean>(false);
+  const [advisoryLastReloadTime, setAdvisoryLastReloadTime] = useState<string>('');
+  const advisoryReloadRef = React.useRef<(() => void) | null>(null);
+
+  // Header Context-Aware Reload Handler
+  const handleHeaderReload = () => {
+    if (activeSection === 'forecast') {
+      handleManualReload();
+    } else {
+      if (advisoryReloadRef.current) {
+        advisoryReloadRef.current();
+      }
+    }
+  };
 
   // Load Districts
   useEffect(() => {
@@ -164,9 +179,10 @@ export default function HomePage() {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#f8fafc' }}>
       {/* Top Header */}
       <Header
-        onReload={handleManualReload}
-        isLoading={isLoadingForecast}
-        lastUpdated={lastReloadTime}
+        activeSection={activeSection}
+        onReload={handleHeaderReload}
+        isLoading={activeSection === 'forecast' ? isLoadingForecast : isAdvisoryLoading}
+        lastUpdated={activeSection === 'forecast' ? lastReloadTime : advisoryLastReloadTime}
       />
 
       {/* Main Body with Sidebar & Content */}
@@ -222,25 +238,62 @@ export default function HomePage() {
               </h1>
             </div>
 
-            {/* Quick Status Pill */}
-            {lastReloadTime && (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                backgroundColor: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: '20px',
-                padding: '6px 14px',
-                fontSize: '12px',
-                color: '#475569',
-                fontWeight: 500,
-                boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
-              }}>
-                <CheckCircle2 size={14} color="#10b981" />
-                <span>Synchronized at: <strong>{lastReloadTime}</strong></span>
-              </div>
-            )}
+            {/* Quick Actions & Status Pill */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              {activeSection === 'forecast' && (
+                <button
+                  onClick={() => window.print()}
+                  id="btn-print-forecast"
+                  title="Print or Save Weather Forecast as PDF"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '7px 14px',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: '#334155',
+                    cursor: 'pointer',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                    transition: 'all 0.15s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f8fafc';
+                    e.currentTarget.style.borderColor = '#94a3b8';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#ffffff';
+                    e.currentTarget.style.borderColor = '#cbd5e1';
+                  }}
+                >
+                  <Printer size={14} />
+                  <span>Print Forecast</span>
+                </button>
+              )}
+
+              {/* Synchronized status pill */}
+              {(activeSection === 'forecast' ? lastReloadTime : advisoryLastReloadTime) && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '20px',
+                  padding: '6px 14px',
+                  fontSize: '12px',
+                  color: '#475569',
+                  fontWeight: 500,
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                }}>
+                  <CheckCircle2 size={14} color="#10b981" />
+                  <span>Synchronized at: <strong>{activeSection === 'forecast' ? lastReloadTime : advisoryLastReloadTime}</strong></span>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Error Message Notice */}
@@ -280,6 +333,9 @@ export default function HomePage() {
             <AdvisorySection
               districtName={districtLabel}
               upazilaName={upazilaLabel}
+              onRegisterReload={(fn) => { advisoryReloadRef.current = fn; }}
+              onLoadingChange={setIsAdvisoryLoading}
+              onLastReloadTimeChange={setAdvisoryLastReloadTime}
             />
           ) : (
             <>
