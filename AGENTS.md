@@ -34,10 +34,13 @@ Data is harvested directly from the NLAS backend services (`https://nlas.dls.gov
 | **Upazilas** | `common/get_upazila.php?name_code=<code\>` | `/api/nlas/upazilas?districtCode=<code\>` |
 | **Daily Forecast** | `upazila_forecast_recent?SOURCE=BMDWRF&PCODE=<pcode\>` | `/api/nlas/forecast?upazilaCode=<pcode\>` |
 | **3-Hourly Steps** | `upazila_forecast_steps_recent?SOURCE=BMDWRF&PCODE=<pcode\>` | `/api/nlas/forecast?upazilaCode=<pcode\>` |
+| **District All Upazilas** | Batch aggregation across upazilas | `/api/nlas/district-forecast?districtCode=<code\>` |
 | **Regional Advisory** | `nlas/advisory_region.php?region_code=<code\>&lang=<en\|bn\>&month=<1-12\>` | `/api/nlas/advisory-regional?regionCode=<code\>&lang=<en\|bn\>&month=<m\>` |
 
 ### Key Classification & Conversion Logic
-1. **Weather Forecast Logic (`src/lib/nlas-client.ts`)**:
+1. **Weather Forecast Logic (`src/lib/nlas-client.ts` & `src/lib/district-forecast.ts`)**:
+   - **District All-Upazilas Feature**: When a district is selected, fetches real-time observations and 5-6 day outlooks for all upazilas in that district via `/api/nlas/district-forecast`. Computes district-wide metrics (temperature range, average temp, average humidity, rainy upazilas count, max rain).
+   - **Interactive All-Upazilas UI**: Supports real-time text search, 5 sort modes (A-Z, Highest Temp, Lowest Temp, Highest Humidity, Highest Rain), dual view modes (Cards Grid View and Comparison Table View), and quick navigation to inspect single upazila 3-hourly spline charts.
    - **Hero Card Matching Algorithm**: Implements government portal's matching formula (`Je >= Tn && Je < xr`) where `Je = YYYYMMDDHH` in `Asia/Dhaka` time.
    - **Wind Direction & Offset**: Uses `-48` degree offset applied by the government frontend (`-48 + winddir`) and 4-quadrant compass mapping (`<=90 NE, <=180 SE, <=270 SW, NW`).
    - **Dynamic Daily Sliding Window**: Automatically filters past dates by comparing against current date in `Asia/Dhaka` (`YYYY-MM-DD`). E.g., if today is 23 October, it displays 23, 24, 25, 26, 27, 28 Oct.
@@ -61,24 +64,29 @@ Data is harvested directly from the NLAS backend services (`https://nlas.dls.gov
 ---
 
 ## 3. Key Components & File Directory
+- **`src/lib/district-forecast.ts`**: Dedicated district aggregation client, parallel fetching of all upazilas in a district, caching, and summary metrics computation.
+- **`src/components/DistrictAllUpazilasView.tsx`**: District all-upazilas view with KPI summary banner, real-time search, 5-way sorting, cards grid view with 5-day mini outlook strip, and sortable comparison table.
+- **`src/app/api/nlas/district-forecast/route.ts`**: API endpoint for district-wide weather aggregation across upazilas.
 - **`src/lib/nlas-client.ts`**: Weather API client, TypeScript interfaces, sliding date windowing, weather condition mapping, and resilient fallbacks.
 - **`src/lib/regional-advisory.ts`**: Dedicated Regional Advisory client, 7 agro-ecological zones definitions, district lists, real-time cache-busting query handler, and upstream proxy fetcher.
-- **`src/app/api/nlas/`**: Next.js route handlers (`/forecast`, `/districts`, `/upazilas`, `/advisory-regional`).
+- **`src/app/api/nlas/`**: Next.js route handlers (`/forecast`, `/districts`, `/upazilas`, `/advisory-regional`, `/district-forecast`).
 - **`src/components/Header.tsx`**: NLS Bangladesh & DLS branding, `Reload Latest Data` button with spinner animation, and user avatar.
 - **`src/components/Sidebar.tsx`**: Collapsible navigation with NLS portal subsections (Weather Forecast & Advisory Section) and DLS verification badge.
-- **`src/components/LocationSelector.tsx`**: Filter dropdowns for District and Upazila with dynamic cascading updates.
+- **`src/components/LocationSelector.tsx`**: Filter dropdowns for District and Upazila with dynamic cascading updates, `All Upazilas` option, and segmented toggle.
 - **`src/components/HeroWeatherCard.tsx`**: Current date, location pin, humidity %, wind speed/direction, weather condition with day/night icon, and BMDWRF attribution.
 - **`src/components/DailyForecastGrid.tsx`**: 5-6 day cards showing weekday, date, weather icon, temp range, rainfall, and relative humidity.
 - **`src/components/HourlyForecastCharts.tsx`**: High-precision SVG interactive charts (Temp/Cloud, Rain/Humidity, Windgust/Direction).
 - **`src/components/AdvisorySection.tsx`**: Full Regional Advisory module featuring 7 agro-ecological zone selector, 12-month climatology SVG chart, month picker, bilingual language switch (`English` / `বাংলা`), dedicated `Reload Latest Advisory` real-time sync button, and livestock/poultry bulletins.
-- **`src/app/page.tsx`**: Main dashboard controller managing state, cascading fetches, manual refresh, and active section toggling.
+- **`src/app/page.tsx`**: Main dashboard controller managing state, cascading fetches, manual refresh, active section toggling, and view mode switching between All Upazilas view and Single Upazila view.
 - **`src/app/globals.css`**: Design tokens, typography (Inter & Hind Siliguri), smooth animations, and scrollbars.
 
 ---
 
 ## 4. Integrated Websites
 1. **NLS Portal (NLAS)** (`nlas.dls.gov.bd`):
-   - **Forecast Section**: Meteorological forecasts, district/upazila filtering, 5-6 day weather cards, and 3-hourly interval spline charts.
+   - **Forecast Section**: 
+     - **District All-Upazilas View**: When any district is selected, all monitored upazilas are displayed on one page with KPI metrics, search, sorting, cards grid, and comparison table.
+     - **Single Upazila Deep View**: Meteorological forecasts, 5-6 day weather cards, and 3-hourly interval spline charts.
    - **Advisory Section**: Region-wise monthly advisory with 7 agro-ecological zones, 12-month climatology graphs, and tailored livestock/poultry bulletins.
 2. **BMD USF Portal** (`https://usf.bmd.gov.bd/`):
    - **Upazila Weather Forecast Section**:

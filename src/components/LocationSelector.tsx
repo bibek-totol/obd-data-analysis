@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { MapPin, Search, ChevronDown, Compass } from 'lucide-react';
+import { ChevronDown, Compass, LayoutGrid } from 'lucide-react';
 import { DistrictItem, UpazilaItem } from '@/lib/nlas-client';
 
 interface LocationSelectorProps {
@@ -12,6 +12,8 @@ interface LocationSelectorProps {
   onDistrictChange: (districtCode: string) => void;
   onUpazilaChange: (upazilaCode: string) => void;
   isLoadingUpazilas: boolean;
+  viewMode?: 'single' | 'all';
+  onViewModeChange?: (mode: 'single' | 'all') => void;
 }
 
 export default function LocationSelector({
@@ -21,7 +23,9 @@ export default function LocationSelector({
   selectedUpazila,
   onDistrictChange,
   onUpazilaChange,
-  isLoadingUpazilas
+  isLoadingUpazilas,
+  viewMode = 'all',
+  onViewModeChange
 }: LocationSelectorProps) {
   return (
     <div style={{
@@ -74,11 +78,19 @@ export default function LocationSelector({
       </div>
 
       {/* Upazila Dropdown */}
-      <div style={{ position: 'relative', minWidth: '200px' }}>
+      <div style={{ position: 'relative', minWidth: '220px' }}>
         <select
           id="select-upazila"
-          value={selectedUpazila}
-          onChange={(e) => onUpazilaChange(e.target.value)}
+          value={viewMode === 'all' ? 'all' : selectedUpazila}
+          onChange={(e) => {
+            const val = e.target.value;
+            if (val === 'all') {
+              if (onViewModeChange) onViewModeChange('all');
+            } else {
+              if (onViewModeChange) onViewModeChange('single');
+              onUpazilaChange(val);
+            }
+          }}
           disabled={isLoadingUpazilas || upazilas.length === 0}
           style={{
             width: '100%',
@@ -102,11 +114,16 @@ export default function LocationSelector({
           ) : upazilas.length === 0 ? (
             <option>No Upazilas found</option>
           ) : (
-            upazilas.map((u) => (
-              <option key={u.value} value={u.value}>
-                {u.label}
+            <>
+              <option value="all" style={{ fontWeight: 700, color: '#006a4e' }}>
+                🌐 All Upazilas in District ({upazilas.length})
               </option>
-            ))
+              {upazilas.map((u) => (
+                <option key={u.value} value={u.value}>
+                  {u.label}
+                </option>
+              ))}
+            </>
           )}
         </select>
         <ChevronDown
@@ -121,6 +138,72 @@ export default function LocationSelector({
           }}
         />
       </div>
+
+      {/* Segmented View Mode Toggle: All Upazilas vs Single Upazila */}
+      {onViewModeChange && (
+        <div style={{
+          display: 'inline-flex',
+          backgroundColor: 'rgba(255, 255, 255, 0.18)',
+          borderRadius: '8px',
+          padding: '3px',
+          border: '1px solid rgba(255, 255, 255, 0.28)',
+          backdropFilter: 'blur(8px)'
+        }}>
+          <button
+            onClick={() => onViewModeChange('all')}
+            id="btn-viewmode-all"
+            type="button"
+            title="View All Upazilas of District in One Page"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 12px',
+              borderRadius: '6px',
+              fontSize: '12px',
+              fontWeight: 700,
+              backgroundColor: viewMode === 'all' ? '#ffffff' : 'transparent',
+              color: viewMode === 'all' ? '#006a4e' : '#ffffff',
+              border: 'none',
+              cursor: 'pointer',
+              boxShadow: viewMode === 'all' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <LayoutGrid size={14} />
+            <span>All Upazilas ({upazilas.length})</span>
+          </button>
+          <button
+            onClick={() => {
+              onViewModeChange('single');
+              if (selectedUpazila === 'all' && upazilas.length > 0) {
+                onUpazilaChange(upazilas[0].value);
+              }
+            }}
+            id="btn-viewmode-single"
+            type="button"
+            title="View Single Upazila with 3-Hourly Charts"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 12px',
+              borderRadius: '6px',
+              fontSize: '12px',
+              fontWeight: 700,
+              backgroundColor: viewMode === 'single' ? '#ffffff' : 'transparent',
+              color: viewMode === 'single' ? '#006a4e' : '#ffffff',
+              border: 'none',
+              cursor: 'pointer',
+              boxShadow: viewMode === 'single' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <Compass size={14} />
+            <span>Single Upazila</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

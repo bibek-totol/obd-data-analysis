@@ -9,6 +9,8 @@ import DailyForecastGrid from '@/components/DailyForecastGrid';
 import HourlyForecastCharts from '@/components/HourlyForecastCharts';
 import AdvisorySection from '@/components/AdvisorySection';
 import BmdSection from '@/components/BmdSection';
+import DistrictAllUpazilasView from '@/components/DistrictAllUpazilasView';
+import { DistrictForecastResponseData } from '@/lib/district-forecast';
 import {
   DistrictItem,
   UpazilaItem,
@@ -16,12 +18,15 @@ import {
   DEFAULT_DISTRICTS,
   DEFAULT_UPAZILAS
 } from '@/lib/nlas-client';
-import { AlertCircle, RefreshCw, CheckCircle2, Printer } from 'lucide-react';
+import { AlertCircle, RefreshCw, CheckCircle2, Printer, MapPin, LayoutGrid } from 'lucide-react';
 
 export default function HomePage() {
   // Navigation State
   const [activeSection, setActiveSection] = useState<ActiveSection>('forecast');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  // View Mode: 'all' displays all upazilas of selected district in one page; 'single' displays single upazila deep charts
+  const [viewMode, setViewMode] = useState<'single' | 'all'>('all');
 
   // Location & Data States
   const [districts, setDistricts] = useState<DistrictItem[]>(DEFAULT_DISTRICTS);
@@ -29,11 +34,17 @@ export default function HomePage() {
   const [selectedDistrict, setSelectedDistrict] = useState<string>('3026'); // Dhaka
   const [selectedUpazila, setSelectedUpazila] = useState<string>('302602'); // Adabor
 
+  // Single Upazila Forecast State
   const [forecastData, setForecastData] = useState<ForecastResponseData | null>(null);
   const [isLoadingForecast, setIsLoadingForecast] = useState<boolean>(true);
   const [isLoadingUpazilas, setIsLoadingUpazilas] = useState<boolean>(false);
   const [lastReloadTime, setLastReloadTime] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // District All-Upazilas Forecast State
+  const [districtForecastData, setDistrictForecastData] = useState<DistrictForecastResponseData | null>(null);
+  const [isLoadingDistrict, setIsLoadingDistrict] = useState<boolean>(true);
+  const [districtReloadTime, setDistrictReloadTime] = useState<string>('');
 
   // Advisory Section Reload States
   const [isAdvisoryLoading, setIsAdvisoryLoading] = useState<boolean>(false);
@@ -48,7 +59,11 @@ export default function HomePage() {
   // Header Context-Aware Reload Handler
   const handleHeaderReload = () => {
     if (activeSection === 'forecast') {
-      handleManualReload();
+      if (viewMode === 'all') {
+        loadDistrictForecast(selectedDistrict, true);
+      } else {
+        handleManualReload();
+      }
     } else if (activeSection === 'advisory') {
       if (advisoryReloadRef.current) {
         advisoryReloadRef.current();
@@ -79,7 +94,38 @@ export default function HomePage() {
   // Client-side cache for instantaneous switching between upazilas
   const clientCacheRef = React.useRef<Record<string, ForecastResponseData>>({});
 
-  // Fetch Forecast Data
+  // Fetch District-Wide Weather Data for All Upazilas
+  const loadDistrictForecast = useCallback(async (districtCode: string, isManualRefresh = false) => {
+    setIsLoadingDistrict(true);
+    try {
+      const url = isManualRefresh
+        ? `/api/nlas/district-forecast?districtCode=${districtCode}&reload=true&t=${Date.now()}`
+        : `/api/nlas/district-forecast?districtCode=${districtCode}`;
+
+      let res = await fetch(url);
+      if (!res.ok) {
+        await new Promise(r => setTimeout(r, 400));
+        res = await fetch(url);
+      }
+      const json = await res.json();
+      if (json.success && json.data) {
+        setDistrictForecastData(json.data);
+        const now = new Date();
+        setDistrictReloadTime(now.toLocaleTimeString());
+      }
+    } catch (err) {
+      console.error('District forecast fetch error:', err);
+    } finally {
+      setIsLoadingDistrict(false);
+    }
+  }, []);
+
+  // Initial District Load
+  useEffect(() => {
+    loadDistrictForecast(selectedDistrict);
+  }, [loadDistrictForecast, selectedDistrict]);
+
+  // Fetch Single Upazila Forecast Data
   const loadForecast = useCallback(async (upazilaCode: string, isManualRefresh = false) => {
     // If not manual refresh and already in client cache, paint immediately!
     if (!isManualRefresh && clientCacheRef.current[upazilaCode]) {
@@ -108,7 +154,6 @@ export default function HomePage() {
         throw new Error(json.error || 'Failed to load weather forecast');
       }
 
-
       clientCacheRef.current[upazilaCode] = json.data;
       setForecastData(json.data);
       const now = new Date();
@@ -128,7 +173,6 @@ export default function HomePage() {
     }
   }, []);
 
-
   // Initial Forecast Load
   useEffect(() => {
     loadForecast(selectedUpazila);
@@ -138,6 +182,8 @@ export default function HomePage() {
   const handleDistrictChange = async (districtCode: string) => {
     setSelectedDistrict(districtCode);
     setIsLoadingUpazilas(true);
+    // Immediately fetch all upazilas for this district
+    loadDistrictForecast(districtCode);
 
     try {
       const res = await fetch(`/api/nlas/upazilas?districtCode=${districtCode}`);
@@ -193,14 +239,14 @@ export default function HomePage() {
         onReload={handleHeaderReload}
         isLoading={
           activeSection === 'forecast'
-            ? isLoadingForecast
+            ? (viewMode === 'all' ? isLoadingDistrict : isLoadingForecast)
             : activeSection === 'advisory'
               ? isAdvisoryLoading
               : isBmdLoading
         }
         lastUpdated={
           activeSection === 'forecast'
-            ? lastReloadTime
+            ? (viewMode === 'all' ? districtReloadTime : lastReloadTime)
             : activeSection === 'advisory'
               ? advisoryLastReloadTime
               : bmdLastReloadTime
@@ -271,7 +317,9 @@ export default function HomePage() {
                   <span>NLS Portal (NLAS)</span>
                   <span>/</span>
                   <span style={{ color: '#006a4e', fontWeight: 700 }}>
-                    {activeSection === 'forecast' ? 'Weather Forecast Section' : 'Region Wise Monthly Advisory'}
+                    {activeSection === 'forecast'
+                      ? (viewMode === 'all' ? `All Upazilas Overview (${districtLabel})` : 'Weather Forecast Section')
+                      : 'Region Wise Monthly Advisory'}
                   </span>
                 </div>
                 <h1 style={{
@@ -281,7 +329,9 @@ export default function HomePage() {
                   marginTop: '4px'
                 }}>
                   {activeSection === 'forecast'
-                    ? `Weather Forecast: ${upazilaLabel}, ${districtLabel}`
+                    ? (viewMode === 'all'
+                        ? `District Weather Overview: All Upazilas in ${districtLabel}`
+                        : `Weather Forecast: ${upazilaLabel}, ${districtLabel}`)
                     : `Region Wise Monthly Advisory`}
                 </h1>
               </div>
@@ -325,7 +375,7 @@ export default function HomePage() {
 
               {/* Synchronized status pill */}
               {(activeSection === 'forecast'
-                ? lastReloadTime
+                ? (viewMode === 'all' ? districtReloadTime : lastReloadTime)
                 : activeSection === 'advisory'
                   ? advisoryLastReloadTime
                   : bmdLastReloadTime) && (
@@ -349,7 +399,7 @@ export default function HomePage() {
                     <span>
                       Synchronized at: <strong>
                         {activeSection === 'forecast'
-                          ? lastReloadTime
+                          ? (viewMode === 'all' ? districtReloadTime : lastReloadTime)
                           : activeSection === 'advisory'
                             ? advisoryLastReloadTime
                             : bmdLastReloadTime}
@@ -410,63 +460,214 @@ export default function HomePage() {
           ) : (
             <>
               {/* Forecast Section */}
-              {isLoadingForecast && !forecastData ? (
-                /* Loading Skeleton */
-                <div style={{
-                  padding: '60px 20px',
-                  textAlign: 'center',
-                  backgroundColor: '#ffffff',
-                  borderRadius: '14px',
-                  border: '1px solid #e2e8f0'
-                }}>
-                  <div style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '54px',
-                    height: '54px',
-                    borderRadius: '50%',
-                    backgroundColor: '#e8f5f0',
-                    color: '#006a4e',
-                    marginBottom: '16px'
-                  }}>
-                    <RefreshCw size={26} className="animate-spin-fast" />
-                  </div>
-                  <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>
-                    Fetching Real-Time Meteorological Feeds
-                  </h3>
-                  <p style={{ fontSize: '13px', color: '#64748b' }}>
-                    Scanning and pulling the latest 5-6 day weather data and 3-hourly forecast...
-                  </p>
-                </div>
-              ) : forecastData ? (
+              {viewMode === 'all' ? (
                 <>
-                  {/* Hero Weather Card with Location Selector Slot */}
-                  <HeroWeatherCard
-                    data={forecastData}
-                    locationSelectorSlot={
-                      <LocationSelector
-                        districts={districts}
-                        upazilas={upazilas}
-                        selectedDistrict={selectedDistrict}
-                        selectedUpazila={selectedUpazila}
-                        onDistrictChange={handleDistrictChange}
-                        onUpazilaChange={handleUpazilaChange}
-                        isLoadingUpazilas={isLoadingUpazilas}
-                      />
-                    }
-                  />
+                  {/* District Selector & Mode Bar */}
+                  <div style={{
+                    background: 'linear-gradient(135deg, #0d2820 0%, #12392e 35%, #184c3e 70%, #0f3026 100%)',
+                    borderRadius: '16px',
+                    padding: '20px 24px',
+                    color: '#ffffff',
+                    boxShadow: '0 12px 30px -5px rgba(8, 38, 28, 0.35), 0 4px 10px rgba(0, 0, 0, 0.12)',
+                    border: '1px solid rgba(52, 211, 153, 0.2)',
+                    marginBottom: '20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '16px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                      <div style={{
+                        width: '44px',
+                        height: '44px',
+                        borderRadius: '12px',
+                        backgroundColor: 'rgba(52, 211, 153, 0.15)',
+                        border: '1px solid rgba(52, 211, 153, 0.3)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#34d399'
+                      }}>
+                        <MapPin size={22} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#a7f3d0', fontWeight: 700 }}>
+                          District Weather Monitoring
+                        </div>
+                        <div style={{ fontSize: '20px', fontWeight: 800, color: '#ffffff' }}>
+                          {districtLabel} District
+                          <span style={{ fontSize: '13px', fontWeight: 500, color: '#cbd5e1', marginLeft: '10px' }}>
+                            ({upazilas.length} Upazilas Monitored)
+                          </span>
+                        </div>
+                      </div>
+                    </div>
 
-                  {/* 5-6 Days Weather Cards */}
-                  <DailyForecastGrid daily={forecastData.daily} />
+                    <LocationSelector
+                      districts={districts}
+                      upazilas={upazilas}
+                      selectedDistrict={selectedDistrict}
+                      selectedUpazila={selectedUpazila}
+                      onDistrictChange={handleDistrictChange}
+                      onUpazilaChange={(upazilaCode) => {
+                        handleUpazilaChange(upazilaCode);
+                        setViewMode('single');
+                      }}
+                      isLoadingUpazilas={isLoadingUpazilas}
+                      viewMode={viewMode}
+                      onViewModeChange={setViewMode}
+                    />
+                  </div>
 
-                  {/* 3-Hourly Forecast Charts */}
-                  <HourlyForecastCharts
-                    hourly={forecastData.hourly}
-                    upazilaName={forecastData.location.upazila_name}
-                  />
+                  {/* All Upazilas View */}
+                  {districtForecastData ? (
+                    <DistrictAllUpazilasView
+                      districtData={districtForecastData}
+                      isLoading={isLoadingDistrict}
+                      onSelectUpazila={(upazilaCode) => {
+                        setSelectedUpazila(upazilaCode);
+                        setViewMode('single');
+                        loadForecast(upazilaCode);
+                      }}
+                      onReloadDistrict={() => loadDistrictForecast(selectedDistrict, true)}
+                    />
+                  ) : (
+                    <div style={{
+                      padding: '70px 20px',
+                      textAlign: 'center',
+                      backgroundColor: '#ffffff',
+                      borderRadius: '14px',
+                      border: '1px solid #e2e8f0'
+                    }}>
+                      <div style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '54px',
+                        height: '54px',
+                        borderRadius: '50%',
+                        backgroundColor: '#e8f5f0',
+                        color: '#006a4e',
+                        marginBottom: '16px'
+                      }}>
+                        <RefreshCw size={26} className="animate-spin-fast" />
+                      </div>
+                      <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>
+                        Loading All Upazilas Weather for {districtLabel}...
+                      </h3>
+                      <p style={{ fontSize: '13px', color: '#64748b' }}>
+                        Gathering real-time forecasts, temperatures, and outlooks across all upazilas in this district.
+                      </p>
+                    </div>
+                  )}
                 </>
-              ) : null}
+              ) : (
+                <>
+                  {/* Navigation Bar back to All Upazilas */}
+                  <div style={{
+                    marginBottom: '14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '10px'
+                  }}>
+                    <button
+                      onClick={() => setViewMode('all')}
+                      id="btn-back-to-all-upazilas"
+                      type="button"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '8px 16px',
+                        backgroundColor: '#ffffff',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        color: '#006a4e',
+                        cursor: 'pointer',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                        transition: 'all 0.15s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#e8f5f0';
+                        e.currentTarget.style.borderColor = '#006a4e';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '#ffffff';
+                        e.currentTarget.style.borderColor = '#cbd5e1';
+                      }}
+                    >
+                      <LayoutGrid size={15} />
+                      <span>← View All {upazilas.length} Upazilas in {districtLabel}</span>
+                    </button>
+
+                    <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>
+                      Viewing 3-Hourly spline graphs for <strong>{upazilaLabel}</strong>
+                    </span>
+                  </div>
+
+                  {/* Single Upazila Forecast: Hero, Daily Grid, Hourly Charts */}
+                  {isLoadingForecast && !forecastData ? (
+                    <div style={{
+                      padding: '60px 20px',
+                      textAlign: 'center',
+                      backgroundColor: '#ffffff',
+                      borderRadius: '14px',
+                      border: '1px solid #e2e8f0'
+                    }}>
+                      <div style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '54px',
+                        height: '54px',
+                        borderRadius: '50%',
+                        backgroundColor: '#e8f5f0',
+                        color: '#006a4e',
+                        marginBottom: '16px'
+                      }}>
+                        <RefreshCw size={26} className="animate-spin-fast" />
+                      </div>
+                      <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>
+                        Fetching Real-Time Meteorological Feeds for {upazilaLabel}
+                      </h3>
+                      <p style={{ fontSize: '13px', color: '#64748b' }}>
+                        Scanning and pulling the latest 5-6 day weather data and 3-hourly forecast...
+                      </p>
+                    </div>
+                  ) : forecastData ? (
+                    <>
+                      <HeroWeatherCard
+                        data={forecastData}
+                        locationSelectorSlot={
+                          <LocationSelector
+                            districts={districts}
+                            upazilas={upazilas}
+                            selectedDistrict={selectedDistrict}
+                            selectedUpazila={selectedUpazila}
+                            onDistrictChange={handleDistrictChange}
+                            onUpazilaChange={handleUpazilaChange}
+                            isLoadingUpazilas={isLoadingUpazilas}
+                            viewMode={viewMode}
+                            onViewModeChange={setViewMode}
+                          />
+                        }
+                      />
+
+                      <DailyForecastGrid daily={forecastData.daily} />
+
+                      <HourlyForecastCharts
+                        hourly={forecastData.hourly}
+                        upazilaName={forecastData.location.upazila_name}
+                      />
+                    </>
+                  ) : null}
+                </>
+              )}
             </>
           )}
         </main>
