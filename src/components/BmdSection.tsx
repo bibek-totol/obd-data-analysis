@@ -10,6 +10,8 @@ import {
 } from '@/lib/bmd-client';
 import BmdWeatherIcon from './BmdWeatherIcon';
 import BmdHourlyCharts from './BmdHourlyCharts';
+import BmdDistrictAllUpazilasView from './BmdDistrictAllUpazilasView';
+import { BmdDistrictForecastResponseData } from '@/lib/bmd-district-forecast';
 import {
   MapPin,
   Calendar,
@@ -20,7 +22,9 @@ import {
   CheckCircle2,
   AlertCircle,
   Navigation,
-  ChevronDown
+  ChevronDown,
+  LayoutGrid,
+  Compass
 } from 'lucide-react';
 
 interface BmdSectionProps {
@@ -37,18 +41,26 @@ export default function BmdSection({
   // Language State: 'bn' (Default on BMD) or 'en'
   const [lang, setLang] = useState<'en' | 'bn'>('bn');
 
+  // View Mode: 'all' displays all upazilas in selected district; 'single' displays single upazila charts
+  const [viewMode, setViewMode] = useState<'single' | 'all'>('all');
+
   // Location States
   const [districts] = useState<BmdDistrictItem[]>(BMD_DISTRICTS);
   const [upazilas, setUpazilas] = useState<BmdUpazilaItem[]>(DEFAULT_BMD_UPAZILAS['3026'] || []);
   const [selectedDistrict, setSelectedDistrict] = useState<string>('3026'); // Dhaka
   const [selectedUpazila, setSelectedUpazila] = useState<string>('302602'); // Adabor
 
-  // Data States
+  // Single Upazila Forecast States
   const [forecastData, setForecastData] = useState<BmdForecastResponseData | null>(null);
   const [isLoadingForecast, setIsLoadingForecast] = useState<boolean>(true);
   const [isLoadingUpazilas, setIsLoadingUpazilas] = useState<boolean>(false);
   const [lastReloadTime, setLastReloadTime] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // District All-Upazilas Forecast States
+  const [districtForecastData, setDistrictForecastData] = useState<BmdDistrictForecastResponseData | null>(null);
+  const [isLoadingDistrict, setIsLoadingDistrict] = useState<boolean>(true);
+  const [districtReloadTime, setDistrictReloadTime] = useState<string>('');
 
   // Client-side cache for instant switching
   const clientCacheRef = useRef<Record<string, BmdForecastResponseData>>({});
@@ -133,25 +145,67 @@ export default function BmdSection({
     }
   }, [onLoadingChange, onLastReloadTimeChange]);
 
-  useEffect(() => {
-    if (selectedUpazila) {
-      loadForecast(selectedUpazila, lang, false);
+  // 3. Fetch District-Wide All-Upazilas Forecast Data
+  const loadDistrictForecast = useCallback(async (districtCode: string, currentLang: 'en' | 'bn', isManualRefresh = false) => {
+    setIsLoadingDistrict(true);
+    try {
+      const url = isManualRefresh
+        ? `/api/bmd/district-forecast?districtCode=${districtCode}&lang=${currentLang}&reload=true&t=${Date.now()}`
+        : `/api/bmd/district-forecast?districtCode=${districtCode}&lang=${currentLang}`;
+
+      const res = await fetch(url);
+      const json = await res.json();
+
+      if (json.success && json.data) {
+        setDistrictForecastData(json.data);
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true
+        });
+        setDistrictReloadTime(timeStr);
+      }
+    } catch (err) {
+      console.error('Error fetching BMD district forecast:', err);
+    } finally {
+      setIsLoadingDistrict(false);
     }
-  }, [selectedUpazila, lang, loadForecast]);
+  }, []);
+
+  useEffect(() => {
+    loadDistrictForecast(selectedDistrict, lang, false);
+  }, [selectedDistrict, lang, loadDistrictForecast]);
+
+  // Synchronize loading & timestamp changes with parent Header
+  useEffect(() => {
+    if (viewMode === 'all') {
+      onLoadingChange?.(isLoadingDistrict);
+      if (districtReloadTime) onLastReloadTimeChange?.(districtReloadTime);
+    } else {
+      onLoadingChange?.(isLoadingForecast);
+      if (lastReloadTime) onLastReloadTimeChange?.(lastReloadTime);
+    }
+  }, [viewMode, isLoadingDistrict, isLoadingForecast, districtReloadTime, lastReloadTime, onLoadingChange, onLastReloadTimeChange]);
 
   // Register manual refresh handler
   useEffect(() => {
     if (onRegisterReload) {
       onRegisterReload(() => {
-        if (selectedUpazila) {
+        if (viewMode === 'all') {
+          loadDistrictForecast(selectedDistrict, lang, true);
+        } else if (selectedUpazila) {
           loadForecast(selectedUpazila, lang, true);
         }
       });
     }
-  }, [onRegisterReload, selectedUpazila, lang, loadForecast]);
+  }, [onRegisterReload, viewMode, selectedDistrict, selectedUpazila, lang, loadDistrictForecast, loadForecast]);
 
   const handleManualReload = () => {
-    if (selectedUpazila) {
+    if (viewMode === 'all') {
+      loadDistrictForecast(selectedDistrict, lang, true);
+    } else if (selectedUpazila) {
       loadForecast(selectedUpazila, lang, true);
     }
   };
@@ -160,11 +214,18 @@ export default function BmdSection({
   const handleDistrictChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newDistrict = e.target.value;
     setSelectedDistrict(newDistrict);
+    loadDistrictForecast(newDistrict, lang, false);
   };
 
   const handleUpazilaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newUpazila = e.target.value;
-    setSelectedUpazila(newUpazila);
+    if (newUpazila === 'all') {
+      setViewMode('all');
+    } else {
+      setSelectedUpazila(newUpazila);
+      setViewMode('single');
+      loadForecast(newUpazila, lang, false);
+    }
   };
 
   const currentDistrictObj = districts.find(d => d.id === selectedDistrict);
@@ -254,7 +315,7 @@ export default function BmdSection({
             <div style={{ position: 'relative' }}>
               <select
                 id="select-bmd-upazila"
-                value={selectedUpazila}
+                value={viewMode === 'all' ? 'all' : selectedUpazila}
                 onChange={handleUpazilaChange}
                 disabled={isLoadingUpazilas}
                 style={{
@@ -272,15 +333,14 @@ export default function BmdSection({
                   transition: 'border-color 0.15s ease'
                 }}
               >
-                {upazilas.length === 0 ? (
-                  <option value="">{lang === 'bn' ? 'কোন উপজেলা পাওয়া যায়নি' : 'No Upazila Available'}</option>
-                ) : (
-                  upazilas.map(u => (
-                    <option key={u.id} value={u.id}>
-                      {lang === 'bn' ? u.nameBn : u.name}
-                    </option>
-                  ))
-                )}
+                <option value="all">
+                  {lang === 'bn' ? `🌐 সর্ব উপজেলা (${upazilas.length})` : `🌐 All Upazilas (${upazilas.length})`}
+                </option>
+                {upazilas.map(u => (
+                  <option key={u.id} value={u.id}>
+                    {lang === 'bn' ? u.nameBn : u.name}
+                  </option>
+                ))}
               </select>
               <ChevronDown
                 size={16}
@@ -291,8 +351,62 @@ export default function BmdSection({
           </div>
         </div>
 
-        {/* Right: Language Switcher, Reload Button & Sync Badge */}
+        {/* Right: View Mode Toggle, Language Switcher & Sync Badge */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          {/* Segmented View Mode Toggle: All Upazilas vs Single Station */}
+          <div style={{
+            display: 'inline-flex',
+            backgroundColor: '#f1f5f9',
+            borderRadius: '10px',
+            padding: '3px',
+            border: '1px solid #e2e8f0'
+          }}>
+            <button
+              id="btn-bmd-view-all"
+              onClick={() => setViewMode('all')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '12px',
+                fontWeight: 700,
+                backgroundColor: viewMode === 'all' ? '#0369a1' : 'transparent',
+                color: viewMode === 'all' ? '#ffffff' : '#64748b',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: viewMode === 'all' ? '0 1px 3px rgba(3,105,161,0.25)' : 'none',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <LayoutGrid size={13} />
+              <span>{lang === 'bn' ? `সর্ব উপজেলা (${upazilas.length})` : `All Upazilas (${upazilas.length})`}</span>
+            </button>
+            <button
+              id="btn-bmd-view-single"
+              onClick={() => setViewMode('single')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '12px',
+                fontWeight: 700,
+                backgroundColor: viewMode === 'single' ? '#0369a1' : 'transparent',
+                color: viewMode === 'single' ? '#ffffff' : '#64748b',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: viewMode === 'single' ? '0 1px 3px rgba(3,105,161,0.25)' : 'none',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <Compass size={13} />
+              <span>{lang === 'bn' ? 'একক উপজেলা' : 'Single Station'}</span>
+            </button>
+          </div>
+
           {/* Language Toggle */}
           <div style={{
             display: 'inline-flex',
@@ -337,10 +451,8 @@ export default function BmdSection({
             </button>
           </div>
 
-
-
           {/* Last Synchronized Status Badge */}
-          {lastReloadTime && (
+          {(viewMode === 'all' ? districtReloadTime : lastReloadTime) && (
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -354,7 +466,7 @@ export default function BmdSection({
               fontWeight: 600
             }}>
               <CheckCircle2 size={13} color="#16a34a" />
-              <span>{lastReloadTime}</span>
+              <span>{viewMode === 'all' ? districtReloadTime : lastReloadTime}</span>
             </div>
           )}
         </div>
@@ -393,8 +505,117 @@ export default function BmdSection({
         </div>
       )}
 
-      {/* Main Content: Hero Card, Daily Grid & 3-Hourly Charts */}
-      {isLoadingForecast && !forecastData ? (
+      {/* Main Content: All Upazilas Overview vs Single Upazila Forecast */}
+      {viewMode === 'all' ? (
+        districtForecastData ? (
+          <BmdDistrictAllUpazilasView
+            districtData={districtForecastData}
+            isLoading={isLoadingDistrict}
+            lang={lang}
+            onSelectUpazila={(upazilaCode) => {
+              setSelectedUpazila(upazilaCode);
+              setViewMode('single');
+              loadForecast(upazilaCode, lang, false);
+            }}
+            onReloadDistrict={() => loadDistrictForecast(selectedDistrict, lang, true)}
+          />
+        ) : (
+          <div style={{
+            padding: '70px 20px',
+            textAlign: 'center',
+            backgroundColor: '#ffffff',
+            borderRadius: '16px',
+            border: '1px solid #e2e8f0'
+          }}>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '56px',
+              height: '56px',
+              borderRadius: '50%',
+              backgroundColor: '#e0f2fe',
+              color: '#0369a1',
+              marginBottom: '16px'
+            }}>
+              <RefreshCw size={26} className="animate-spin-fast" />
+            </div>
+            <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>
+              {lang === 'bn' ? `${districtLabel} জেলার সকল উপজেলার আবহাওয়া লোড হচ্ছে...` : `Loading All Upazilas in ${districtLabel}...`}
+            </h3>
+            <p style={{ fontSize: '13px', color: '#64748b' }}>
+              {lang === 'bn' ? 'বাংলাদেশ আবহাওয়া অধিদপ্তরের তথ্য সংগ্রহ হচ্ছে।' : 'Fetching real-time BMDWRF meteorological telemetry for all stations.'}
+            </p>
+          </div>
+        )
+      ) : (
+        <>
+          {/* Back to All Upazilas Banner */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            backgroundColor: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '14px',
+            padding: '12px 18px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <MapPin size={16} color="#0369a1" />
+              <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
+                {lang === 'bn'
+                  ? `${districtLabel} জেলা / ${upazilaLabel} উপজেলা`
+                  : `${upazilaLabel}, ${districtLabel} District`}
+              </span>
+              <span style={{
+                fontSize: '11px',
+                padding: '2px 8px',
+                borderRadius: '10px',
+                backgroundColor: '#e0f2fe',
+                color: '#0369a1',
+                fontWeight: 600
+              }}>
+                {selectedUpazila}
+              </span>
+            </div>
+
+            <button
+              onClick={() => setViewMode('all')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '7px 14px',
+                borderRadius: '8px',
+                backgroundColor: '#f0f9ff',
+                color: '#0369a1',
+                border: '1px solid #bae6fd',
+                fontSize: '12px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#0369a1';
+                e.currentTarget.style.color = '#ffffff';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#f0f9ff';
+                e.currentTarget.style.color = '#0369a1';
+              }}
+            >
+              <LayoutGrid size={14} />
+              <span>
+                {lang === 'bn'
+                  ? `← ${districtLabel} জেলার সকল উপজেলা (${upazilas.length}) দেখুন`
+                  : `← View All ${upazilas.length} Upazilas in ${districtLabel}`}
+              </span>
+            </button>
+          </div>
+
+          {/* Single Upazila Weather Details */}
+          {isLoadingForecast && !forecastData ? (
         <div style={{
           padding: '70px 20px',
           textAlign: 'center',
@@ -764,6 +985,8 @@ export default function BmdSection({
 
         </>
       ) : null}
+        </>
+      )}
     </div>
   );
 }

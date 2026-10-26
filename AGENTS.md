@@ -77,6 +77,10 @@ Data is harvested directly from the NLAS backend services (`https://nlas.dls.gov
 - **`src/components/DailyForecastGrid.tsx`**: 5-6 day cards showing weekday, date, weather icon, temp range, rainfall, and relative humidity.
 - **`src/components/HourlyForecastCharts.tsx`**: High-precision SVG interactive charts (Temp/Cloud, Rain/Humidity, Windgust/Direction).
 - **`src/components/AdvisorySection.tsx`**: Full Regional Advisory module featuring 7 agro-ecological zone selector, 12-month climatology SVG chart, month picker, bilingual language switch (`English` / `বাংলা`), dedicated `Reload Latest Advisory` real-time sync button, and livestock/poultry bulletins.
+- **`src/lib/bmd-district-forecast.ts`**: Dedicated BMD district aggregation client, parallel fetching of all upazilas in a district via `Promise.allSettled`, 5-minute memory caching, and district-wide summary telemetry metrics calculation (min/max temp, avg temp, avg humidity, rainfall alert count).
+- **`src/components/BmdDistrictAllUpazilasView.tsx`**: BMD District all-upazilas view with KPI summary banner, real-time search, 5-way sorting, cards grid view with in-card tabs for 5-8 day Apple-Weather-style outlook rows and 3-hourly horizontal scrolling timeline, and sortable comparison table.
+- **`src/app/api/bmd/district-forecast/route.ts`**: API endpoint for BMD district-wide weather aggregation across upazilas (`/api/bmd/district-forecast?districtCode=<code\>&lang=<en|bn\>`).
+- **`src/components/BmdSection.tsx`**: BMD Portal container managing bilingual state ('bn'/'en'), segmented view switcher ('all' / 'single'), cascading station lookups, and deep inspection.
 - **`src/app/page.tsx`**: Main dashboard controller managing state, cascading fetches, manual refresh, active section toggling, and view mode switching between All Upazilas view and Single Upazila view.
 - **`src/app/globals.css`**: Design tokens, typography (Inter & Hind Siliguri), smooth animations, and scrollbars.
 
@@ -91,13 +95,19 @@ Data is harvested directly from the NLAS backend services (`https://nlas.dls.gov
 2. **BMD USF Portal** (`https://usf.bmd.gov.bd/`):
    - **Upazila Weather Forecast Section**:
      - Real-time meteorological telemetry directly from BMDWRF and `https://api.bdservers.site`.
-     - 64 District (Jela) dropdown and dynamic cascading Upazila (Upjila) filtering (`/api/bmd/districts`, `/api/bmd/upazilas`).
-     - Real-time observation Hero card with Day/Night atmospheric gradient, temperature, Heat Index real feel, relative humidity, wind speed and 360° rotating compass pointer.
-     - 8-Day Daily Weather Cards showing day/night condition icons, max/min temps, precipitation range, wind speed/direction, and relative humidity.
-     - 3-Hourly Interactive High-Precision SVG Charts (Next 3 days / 24 steps):
-       - Chart 1: Temperature Spline with condition icon plotted at each 3-hour interval.
-       - Chart 2: Rainfall (mm) bar/area & Relative Humidity (%) spline chart with dual axis.
-       - Chart 3: Wind Speed (km/h) spline & 360° rotating compass pointer arrow for each step.
+     - **District All-Upazilas View**: When any district (Jela) is selected, all monitored upazilas in that district are displayed on one page with:
+       - Aggregate KPI metrics (Total Stations, Temp Range, Avg Humidity, Rainy Stations Alert).
+       - Real-time search (Bengali & English) and 5-way sorting (A-Z, Highest Temp, Lowest Temp, Highest Humidity, Highest Rain).
+       - In-card tab switcher: **5-8 Day Outlook** (spacious Apple Weather-style rows with diurnal temperature spectrum bars) and **3-Hourly Timeline** (clean horizontal scroll tracks with formatted time spans like `06:00 AM – 09:00 AM` / `০৬:০০ - ০৯:০০`).
+       - Layout switcher: Cards Grid View and Sortable Comparison Table.
+       - "Inspect 3-Hourly Charts" button to drill down into single upazila view with return navigation.
+     - **Single Upazila Deep View**:
+       - Real-time observation Hero card with Day/Night atmospheric gradient, temperature, Heat Index real feel, relative humidity, wind speed and 360° rotating compass pointer.
+       - 8-Day Daily Weather Cards showing day/night condition icons, max/min temps, precipitation range, wind speed/direction, and relative humidity.
+       - 3-Hourly Interactive High-Precision SVG Charts (Next 3 days / 24 steps):
+         - Chart 1: Temperature Spline with condition icon plotted at each 3-hour interval.
+         - Chart 2: Rainfall (mm) bar/area & Relative Humidity (%) spline chart with dual axis.
+         - Chart 3: Wind Speed (km/h) spline & 360° rotating compass pointer arrow for each step.
      - Bilingual toggle (`English` / `বাংলা`) with Bengali numerals, weekdays, and weather terminology.
      - Technical attribution to Bangladesh Meteorological Department (BMD), RIMES, and Govt of Bangladesh.
 
