@@ -656,14 +656,14 @@ export default function BmdSection({
                     position: 'relative'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-3px)';
-                    e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.08)';
-                    e.currentTarget.style.borderColor = '#0284c7';
+                    e.currentTarget.style.boxShadow = '0 8px 18px rgba(3, 105, 161, 0.12)';
+                    e.currentTarget.style.borderColor = '#0369a1';
+                    e.currentTarget.style.backgroundColor = '#f8fafc';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
                     e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.02)';
                     e.currentTarget.style.borderColor = '#e2e8f0';
+                    e.currentTarget.style.backgroundColor = '#ffffff';
                   }}
                 >
                   {/* Weekday & Date */}
