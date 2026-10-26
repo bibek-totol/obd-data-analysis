@@ -20,7 +20,7 @@ This is a **Next.js (App Router, TypeScript, Vanilla CSS)** application designed
     2. **Advisory Section** *(Completed & Live)*: Region-wise monthly advisory with 7 agro-ecological zones, 12-month climatology graphs, and tailored livestock/poultry bulletins.
 - **UI / UX Principles**:
   - Clean, professional **white background** layout designed to prevent visual clutter.
-  - Government branding (CARE South Asia, Department of Livestock Services - DLS Bangladesh).
+  - Government branding (NLS Bangladesh, Department of Livestock Services - DLS Bangladesh).
   - Fully responsive, accessible, with color-coded badges, bilingual font rendering (Inter & Hind Siliguri), and micro-animations.
 
 ---
@@ -64,7 +64,7 @@ Data is harvested directly from the NLAS backend services (`https://nlas.dls.gov
 - **`src/lib/nlas-client.ts`**: Weather API client, TypeScript interfaces, sliding date windowing, weather condition mapping, and resilient fallbacks.
 - **`src/lib/regional-advisory.ts`**: Dedicated Regional Advisory client, 7 agro-ecological zones definitions, district lists, real-time cache-busting query handler, and upstream proxy fetcher.
 - **`src/app/api/nlas/`**: Next.js route handlers (`/forecast`, `/districts`, `/upazilas`, `/advisory-regional`).
-- **`src/components/Header.tsx`**: CARE South Asia & DLS branding, `Reload Latest Data` button with spinner animation, and user avatar.
+- **`src/components/Header.tsx`**: NLS Bangladesh & DLS branding, `Reload Latest Data` button with spinner animation, and user avatar.
 - **`src/components/Sidebar.tsx`**: Collapsible navigation with NLS portal subsections (Weather Forecast & Advisory Section) and DLS verification badge.
 - **`src/components/LocationSelector.tsx`**: Filter dropdowns for District and Upazila with dynamic cascading updates.
 - **`src/components/HeroWeatherCard.tsx`**: Current date, location pin, humidity %, wind speed/direction, weather condition with day/night icon, and BMDWRF attribution.
@@ -76,7 +76,21 @@ Data is harvested directly from the NLAS backend services (`https://nlas.dls.gov
 
 ---
 
-## 4. Current Status
-1. **Forecast Section**: Fully implemented, connected to live data, verified with dynamic daily sliding calendar windows.
-2. **Advisory Section**: Fully implemented based on analysis of `https://nlas.dls.gov.bd/dashboard/advisory_regional`, connected to live DLS APIs, tested in browser across all 7 regions, both languages, and 12 months. Features real-time dynamic refresh via `Reload Latest Advisory`.
+## 4. Integrated Websites
+1. **NLS Portal (NLAS)** (`nlas.dls.gov.bd`):
+   - **Forecast Section**: Meteorological forecasts, district/upazila filtering, 5-6 day weather cards, and 3-hourly interval spline charts.
+   - **Advisory Section**: Region-wise monthly advisory with 7 agro-ecological zones, 12-month climatology graphs, and tailored livestock/poultry bulletins.
+2. **BMD USF Portal** (`https://usf.bmd.gov.bd/`):
+   - **Upazila Weather Forecast Section**:
+     - Real-time meteorological telemetry directly from BMDWRF and `https://api.bdservers.site`.
+     - 64 District (Jela) dropdown and dynamic cascading Upazila (Upjila) filtering (`/api/bmd/districts`, `/api/bmd/upazilas`).
+     - Real-time observation Hero card with Day/Night atmospheric gradient, temperature, Heat Index real feel, relative humidity, wind speed and 360° rotating compass pointer.
+     - 8-Day Daily Weather Cards showing day/night condition icons, max/min temps, precipitation range, wind speed/direction, and relative humidity.
+     - 3-Hourly Interactive High-Precision SVG Charts (Next 3 days / 24 steps):
+       - Chart 1: Temperature Spline with condition icon plotted at each 3-hour interval.
+       - Chart 2: Rainfall (mm) bar/area & Relative Humidity (%) spline chart with dual axis.
+       - Chart 3: Wind Speed (km/h) spline & 360° rotating compass pointer arrow for each step.
+     - Bilingual toggle (`English` / `বাংলা`) with Bengali numerals, weekdays, and weather terminology.
+     - Technical attribution to Bangladesh Meteorological Department (BMD), RIMES, and Govt of Bangladesh.
+
 

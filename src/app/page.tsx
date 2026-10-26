@@ -8,6 +8,7 @@ import HeroWeatherCard from '@/components/HeroWeatherCard';
 import DailyForecastGrid from '@/components/DailyForecastGrid';
 import HourlyForecastCharts from '@/components/HourlyForecastCharts';
 import AdvisorySection from '@/components/AdvisorySection';
+import BmdSection from '@/components/BmdSection';
 import {
   DistrictItem,
   UpazilaItem,
@@ -39,13 +40,22 @@ export default function HomePage() {
   const [advisoryLastReloadTime, setAdvisoryLastReloadTime] = useState<string>('');
   const advisoryReloadRef = React.useRef<(() => void) | null>(null);
 
+  // BMD USF Section Reload States
+  const [isBmdLoading, setIsBmdLoading] = useState<boolean>(false);
+  const [bmdLastReloadTime, setBmdLastReloadTime] = useState<string>('');
+  const bmdReloadRef = React.useRef<(() => void) | null>(null);
+
   // Header Context-Aware Reload Handler
   const handleHeaderReload = () => {
     if (activeSection === 'forecast') {
       handleManualReload();
-    } else {
+    } else if (activeSection === 'advisory') {
       if (advisoryReloadRef.current) {
         advisoryReloadRef.current();
+      }
+    } else if (activeSection === 'bmd-forecast') {
+      if (bmdReloadRef.current) {
+        bmdReloadRef.current();
       }
     }
   };
@@ -181,8 +191,20 @@ export default function HomePage() {
       <Header
         activeSection={activeSection}
         onReload={handleHeaderReload}
-        isLoading={activeSection === 'forecast' ? isLoadingForecast : isAdvisoryLoading}
-        lastUpdated={activeSection === 'forecast' ? lastReloadTime : advisoryLastReloadTime}
+        isLoading={
+          activeSection === 'forecast'
+            ? isLoadingForecast
+            : activeSection === 'advisory'
+              ? isAdvisoryLoading
+              : isBmdLoading
+        }
+        lastUpdated={
+          activeSection === 'forecast'
+            ? lastReloadTime
+            : activeSection === 'advisory'
+              ? advisoryLastReloadTime
+              : bmdLastReloadTime
+        }
       />
 
       {/* Main Body with Sidebar & Content */}
@@ -211,32 +233,59 @@ export default function HomePage() {
             flexWrap: 'wrap',
             gap: '12px'
           }}>
-            <div>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontSize: '12px',
-                color: '#64748b',
-                fontWeight: 600
-              }}>
-                <span>NLS Portal (NLAS)</span>
-                <span>/</span>
-                <span style={{ color: '#006a4e', fontWeight: 700 }}>
-                  {activeSection === 'forecast' ? 'Weather Forecast Section' : 'Region Wise Monthly Advisory'}
-                </span>
+            {activeSection === 'bmd-forecast' ? (
+              <div>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '12px',
+                  color: '#64748b',
+                  fontWeight: 600
+                }}>
+                  <span>BMD Portal (USF)</span>
+                  <span>/</span>
+                  <span style={{ color: '#0369a1', fontWeight: 700 }}>
+                    Upazila Weather Forecast
+                  </span>
+                </div>
+                <h1 style={{
+                  fontSize: '22px',
+                  fontWeight: 800,
+                  color: '#0f172a',
+                  marginTop: '4px'
+                }}>
+                  Upazila Weather Forecast (usf.bmd.gov.bd)
+                </h1>
               </div>
-              <h1 style={{
-                fontSize: '22px',
-                fontWeight: 800,
-                color: '#0f172a',
-                marginTop: '4px'
-              }}>
-                {activeSection === 'forecast'
-                  ? `Weather Forecast: ${upazilaLabel}, ${districtLabel}`
-                  : `Region Wise Monthly Advisory`}
-              </h1>
-            </div>
+            ) : (
+              <div>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '12px',
+                  color: '#64748b',
+                  fontWeight: 600
+                }}>
+                  <span>NLS Portal (NLAS)</span>
+                  <span>/</span>
+                  <span style={{ color: '#006a4e', fontWeight: 700 }}>
+                    {activeSection === 'forecast' ? 'Weather Forecast Section' : 'Region Wise Monthly Advisory'}
+                  </span>
+                </div>
+                <h1 style={{
+                  fontSize: '22px',
+                  fontWeight: 800,
+                  color: '#0f172a',
+                  marginTop: '4px'
+                }}>
+                  {activeSection === 'forecast'
+                    ? `Weather Forecast: ${upazilaLabel}, ${districtLabel}`
+                    : `Region Wise Monthly Advisory`}
+                </h1>
+              </div>
+            )}
 
             {/* Quick Actions & Status Pill */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
@@ -275,24 +324,39 @@ export default function HomePage() {
               )}
 
               {/* Synchronized status pill */}
-              {(activeSection === 'forecast' ? lastReloadTime : advisoryLastReloadTime) && (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  backgroundColor: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '20px',
-                  padding: '6px 14px',
-                  fontSize: '12px',
-                  color: '#475569',
-                  fontWeight: 500,
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
-                }}>
-                  <CheckCircle2 size={14} color="#10b981" />
-                  <span>Synchronized at: <strong>{activeSection === 'forecast' ? lastReloadTime : advisoryLastReloadTime}</strong></span>
-                </div>
-              )}
+              {(activeSection === 'forecast'
+                ? lastReloadTime
+                : activeSection === 'advisory'
+                  ? advisoryLastReloadTime
+                  : bmdLastReloadTime) && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '20px',
+                    padding: '6px 14px',
+                    fontSize: '12px',
+                    color: '#475569',
+                    fontWeight: 500,
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                  }}>
+                    <CheckCircle2
+                      size={14}
+                      color={activeSection === 'bmd-forecast' ? '#0369a1' : '#10b981'}
+                    />
+                    <span>
+                      Synchronized at: <strong>
+                        {activeSection === 'forecast'
+                          ? lastReloadTime
+                          : activeSection === 'advisory'
+                            ? advisoryLastReloadTime
+                            : bmdLastReloadTime}
+                      </strong>
+                    </span>
+                  </div>
+                )}
             </div>
           </div>
 
@@ -328,8 +392,14 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* Conditional View: Forecast vs Advisory */}
-          {activeSection === 'advisory' ? (
+          {/* Conditional View: BMD USF vs Advisory vs NLAS Forecast */}
+          {activeSection === 'bmd-forecast' ? (
+            <BmdSection
+              onRegisterReload={(fn) => { bmdReloadRef.current = fn; }}
+              onLoadingChange={setIsBmdLoading}
+              onLastReloadTimeChange={setBmdLastReloadTime}
+            />
+          ) : activeSection === 'advisory' ? (
             <AdvisorySection
               districtName={districtLabel}
               upazilaName={upazilaLabel}

@@ -1,0 +1,769 @@
+'use client';
+
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import {
+  BmdDistrictItem,
+  BmdUpazilaItem,
+  BmdForecastResponseData,
+  BMD_DISTRICTS,
+  DEFAULT_BMD_UPAZILAS
+} from '@/lib/bmd-client';
+import BmdWeatherIcon from './BmdWeatherIcon';
+import BmdHourlyCharts from './BmdHourlyCharts';
+import {
+  MapPin,
+  Calendar,
+  Droplets,
+  Thermometer,
+  Wind,
+  RefreshCw,
+  CheckCircle2,
+  AlertCircle,
+  Navigation,
+  ChevronDown
+} from 'lucide-react';
+
+interface BmdSectionProps {
+  onRegisterReload?: (fn: () => void) => void;
+  onLoadingChange?: (loading: boolean) => void;
+  onLastReloadTimeChange?: (time: string) => void;
+}
+
+export default function BmdSection({
+  onRegisterReload,
+  onLoadingChange,
+  onLastReloadTimeChange
+}: BmdSectionProps) {
+  // Language State: 'bn' (Default on BMD) or 'en'
+  const [lang, setLang] = useState<'en' | 'bn'>('bn');
+
+  // Location States
+  const [districts] = useState<BmdDistrictItem[]>(BMD_DISTRICTS);
+  const [upazilas, setUpazilas] = useState<BmdUpazilaItem[]>(DEFAULT_BMD_UPAZILAS['3026'] || []);
+  const [selectedDistrict, setSelectedDistrict] = useState<string>('3026'); // Dhaka
+  const [selectedUpazila, setSelectedUpazila] = useState<string>('302602'); // Adabor
+
+  // Data States
+  const [forecastData, setForecastData] = useState<BmdForecastResponseData | null>(null);
+  const [isLoadingForecast, setIsLoadingForecast] = useState<boolean>(true);
+  const [isLoadingUpazilas, setIsLoadingUpazilas] = useState<boolean>(false);
+  const [lastReloadTime, setLastReloadTime] = useState<string>('');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Client-side cache for instant switching
+  const clientCacheRef = useRef<Record<string, BmdForecastResponseData>>({});
+
+  // 1. Fetch Upazilas when District or Language Changes
+  const loadUpazilas = useCallback(async (districtCode: string, currentLang: 'en' | 'bn') => {
+    setIsLoadingUpazilas(true);
+    try {
+      const res = await fetch(`/api/bmd/upazilas?districtCode=${districtCode}&lang=${currentLang}`);
+      const json = await res.json();
+      if (json.success && json.upazilas?.length > 0) {
+        setUpazilas(json.upazilas);
+        // Default to first upazila if selected one doesn't exist in new district
+        const exists = json.upazilas.some((u: BmdUpazilaItem) => u.id === selectedUpazila);
+        if (!exists) {
+          setSelectedUpazila(json.upazilas[0].id);
+        }
+      } else if (DEFAULT_BMD_UPAZILAS[districtCode]) {
+        setUpazilas(DEFAULT_BMD_UPAZILAS[districtCode]);
+      }
+    } catch (err) {
+      console.warn('Using default upazilas due to network:', err);
+      if (DEFAULT_BMD_UPAZILAS[districtCode]) {
+        setUpazilas(DEFAULT_BMD_UPAZILAS[districtCode]);
+      }
+    } finally {
+      setIsLoadingUpazilas(false);
+    }
+  }, [selectedUpazila]);
+
+  useEffect(() => {
+    loadUpazilas(selectedDistrict, lang);
+  }, [selectedDistrict, lang, loadUpazilas]);
+
+  // 2. Fetch Forecast Data for Selected Upazila
+  const loadForecast = useCallback(async (upazilaCode: string, currentLang: 'en' | 'bn', isManualRefresh = false) => {
+    const cacheKey = `${upazilaCode}_${currentLang}`;
+    if (!isManualRefresh && clientCacheRef.current[cacheKey]) {
+      setForecastData(clientCacheRef.current[cacheKey]);
+      setIsLoadingForecast(false);
+      return;
+    }
+
+    setIsLoadingForecast(true);
+    onLoadingChange?.(true);
+    setErrorMessage(null);
+
+    try {
+      const url = isManualRefresh
+        ? `/api/bmd/forecast?upazilaCode=${upazilaCode}&lang=${currentLang}&reload=true&t=${Date.now()}`
+        : `/api/bmd/forecast?upazilaCode=${upazilaCode}&lang=${currentLang}`;
+
+      let res = await fetch(url);
+      if (!res.ok) {
+        await new Promise(r => setTimeout(r, 400));
+        res = await fetch(url);
+      }
+      const json = await res.json();
+
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || 'Failed to fetch BMD forecast data');
+      }
+
+      setForecastData(json.data);
+      clientCacheRef.current[cacheKey] = json.data;
+
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      });
+      setLastReloadTime(timeStr);
+      onLastReloadTimeChange?.(timeStr);
+    } catch (err) {
+      console.error('Error loading BMD forecast:', err);
+      setErrorMessage(err instanceof Error ? err.message : 'Error fetching meteorological data');
+    } finally {
+      setIsLoadingForecast(false);
+      onLoadingChange?.(false);
+    }
+  }, [onLoadingChange, onLastReloadTimeChange]);
+
+  useEffect(() => {
+    if (selectedUpazila) {
+      loadForecast(selectedUpazila, lang, false);
+    }
+  }, [selectedUpazila, lang, loadForecast]);
+
+  // Register manual refresh handler
+  useEffect(() => {
+    if (onRegisterReload) {
+      onRegisterReload(() => {
+        if (selectedUpazila) {
+          loadForecast(selectedUpazila, lang, true);
+        }
+      });
+    }
+  }, [onRegisterReload, selectedUpazila, lang, loadForecast]);
+
+  const handleManualReload = () => {
+    if (selectedUpazila) {
+      loadForecast(selectedUpazila, lang, true);
+    }
+  };
+
+  // District & Upazila Handlers
+  const handleDistrictChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newDistrict = e.target.value;
+    setSelectedDistrict(newDistrict);
+  };
+
+  const handleUpazilaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newUpazila = e.target.value;
+    setSelectedUpazila(newUpazila);
+  };
+
+  const currentDistrictObj = districts.find(d => d.id === selectedDistrict);
+  const districtLabel = lang === 'bn' ? (currentDistrictObj?.nameBn || currentDistrictObj?.name) : currentDistrictObj?.name;
+  const currentUpazilaObj = upazilas.find(u => u.id === selectedUpazila);
+  const upazilaLabel = lang === 'bn' ? (currentUpazilaObj?.nameBn || currentUpazilaObj?.name) : currentUpazilaObj?.name;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      {/* -------------------------------------------------------------
+          TOP CONTROL BAR: Language Toggle, Location Pickers & Sync Status
+         ------------------------------------------------------------- */}
+      <div style={{
+        backgroundColor: '#ffffff',
+        border: '1px solid #e2e8f0',
+        borderRadius: '16px',
+        padding: '16px 20px',
+        display: 'flex',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '16px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+      }}>
+        {/* Left: Location Pickers (Jela & Upjila) */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px', flex: 1 }}>
+          {/* District (Jela) Dropdown */}
+          <div style={{ minWidth: '200px', flex: '1 1 200px', position: 'relative' }}>
+            <label style={{
+              display: 'block',
+              fontSize: '11px',
+              fontWeight: 700,
+              color: '#475569',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              marginBottom: '4px'
+            }}>
+              {lang === 'bn' ? 'জেলা নির্বাচন করুন' : 'Select District (Jela)'}
+            </label>
+            <div style={{ position: 'relative' }}>
+              <select
+                id="select-bmd-district"
+                value={selectedDistrict}
+                onChange={handleDistrictChange}
+                style={{
+                  width: '100%',
+                  padding: '9px 34px 9px 12px',
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '10px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  color: '#0f172a',
+                  cursor: 'pointer',
+                  appearance: 'none',
+                  outline: 'none',
+                  transition: 'border-color 0.15s ease'
+                }}
+              >
+                {districts.map(d => (
+                  <option key={d.id} value={d.id}>
+                    {lang === 'bn' ? `${d.nameBn} (${d.name})` : `${d.name} (${d.nameBn})`}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                size={16}
+                color="#64748b"
+                style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
+              />
+            </div>
+          </div>
+
+          {/* Upazila (Upjila) Dropdown */}
+          <div style={{ minWidth: '200px', flex: '1 1 200px', position: 'relative' }}>
+            <label style={{
+              display: 'block',
+              fontSize: '11px',
+              fontWeight: 700,
+              color: '#475569',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              marginBottom: '4px'
+            }}>
+              {lang === 'bn' ? 'উপজেলা নির্বাচন করুন' : 'Select Upazila (Upjila)'}
+            </label>
+            <div style={{ position: 'relative' }}>
+              <select
+                id="select-bmd-upazila"
+                value={selectedUpazila}
+                onChange={handleUpazilaChange}
+                disabled={isLoadingUpazilas}
+                style={{
+                  width: '100%',
+                  padding: '9px 34px 9px 12px',
+                  backgroundColor: isLoadingUpazilas ? '#f1f5f9' : '#f8fafc',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '10px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  color: '#0f172a',
+                  cursor: isLoadingUpazilas ? 'wait' : 'pointer',
+                  appearance: 'none',
+                  outline: 'none',
+                  transition: 'border-color 0.15s ease'
+                }}
+              >
+                {upazilas.length === 0 ? (
+                  <option value="">{lang === 'bn' ? 'কোন উপজেলা পাওয়া যায়নি' : 'No Upazila Available'}</option>
+                ) : (
+                  upazilas.map(u => (
+                    <option key={u.id} value={u.id}>
+                      {lang === 'bn' ? u.nameBn : u.name}
+                    </option>
+                  ))
+                )}
+              </select>
+              <ChevronDown
+                size={16}
+                color="#64748b"
+                style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Language Switcher, Reload Button & Sync Badge */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          {/* Language Toggle */}
+          <div style={{
+            display: 'inline-flex',
+            backgroundColor: '#f1f5f9',
+            borderRadius: '10px',
+            padding: '3px',
+            border: '1px solid #e2e8f0'
+          }}>
+            <button
+              onClick={() => setLang('en')}
+              id="btn-bmd-lang-en"
+              style={{
+                padding: '6px 12px',
+                borderRadius: '8px',
+                fontSize: '12px',
+                fontWeight: 700,
+                backgroundColor: lang === 'en' ? '#0369a1' : 'transparent',
+                color: lang === 'en' ? '#ffffff' : '#64748b',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              English
+            </button>
+            <button
+              onClick={() => setLang('bn')}
+              id="btn-bmd-lang-bn"
+              style={{
+                padding: '6px 12px',
+                borderRadius: '8px',
+                fontSize: '12px',
+                fontWeight: 700,
+                backgroundColor: lang === 'bn' ? '#0369a1' : 'transparent',
+                color: lang === 'bn' ? '#ffffff' : '#64748b',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              বাংলা
+            </button>
+          </div>
+
+
+
+          {/* Last Synchronized Status Badge */}
+          {lastReloadTime && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              borderRadius: '20px',
+              padding: '6px 12px',
+              fontSize: '11px',
+              color: '#15803d',
+              fontWeight: 600
+            }}>
+              <CheckCircle2 size={13} color="#16a34a" />
+              <span>{lastReloadTime}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Error Notice */}
+      {errorMessage && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          padding: '12px 16px',
+          backgroundColor: '#fef2f2',
+          border: '1px solid #fecaca',
+          borderRadius: '12px',
+          color: '#991b1b',
+          fontSize: '13px',
+          fontWeight: 600
+        }}>
+          <AlertCircle size={18} />
+          <div style={{ flex: 1 }}>{errorMessage}</div>
+          <button
+            onClick={handleManualReload}
+            style={{
+              backgroundColor: '#991b1b',
+              color: '#ffffff',
+              padding: '4px 10px',
+              borderRadius: '6px',
+              fontSize: '12px',
+              border: 'none',
+              cursor: 'pointer'
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* Main Content: Hero Card, Daily Grid & 3-Hourly Charts */}
+      {isLoadingForecast && !forecastData ? (
+        <div style={{
+          padding: '70px 20px',
+          textAlign: 'center',
+          backgroundColor: '#ffffff',
+          borderRadius: '16px',
+          border: '1px solid #e2e8f0'
+        }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            backgroundColor: '#e0f2fe',
+            color: '#0369a1',
+            marginBottom: '16px'
+          }}>
+            <RefreshCw size={26} className="animate-spin-fast" />
+          </div>
+          <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>
+            {lang === 'bn' ? 'বাংলাদেশ আবহাওয়া অধিদপ্তরের তথ্য সংগ্রহ হচ্ছে...' : 'Fetching Bangladesh Meteorological Department Feeds...'}
+          </h3>
+          <p style={{ fontSize: '13px', color: '#64748b' }}>
+            {lang === 'bn' ? 'উপজেলার সর্বশেষ আবহাওয়ার তথ্য ও ৩-ঘণ্টার পূর্বাভাস লোড করা হচ্ছে।' : 'Scanning BMDWRF model for current station feeds and 3-hourly steps.'}
+          </p>
+        </div>
+      ) : forecastData ? (
+        <>
+          {/* -------------------------------------------------------------
+              HERO WEATHER CARD: Deep Midnight Navy to Ocean Blue
+             ------------------------------------------------------------- */}
+          <div style={{
+            background: forecastData.hero.isNight
+              ? 'linear-gradient(112deg, #04091e 0%, #081232 28%, #0f1e56 55%, #1a8ac6ff 55%, #32b2f7ff 55%, #32b2f7ff 55%)'
+              : 'linear-gradient(112deg, #060e2f 0%, #081a4a 28%, #0a336f 55%, #0a6291ff 76%, #32b2f7ff 92%, #32b2f7ff 100%)',
+            color: '#ffffff',
+            borderRadius: '26px',
+            padding: '30px 36px 20px',
+            boxShadow: '0 20px 45px -10px rgba(3, 105, 161, 0.4), 0 0 25px rgba(3, 105, 161, 0.15)',
+            position: 'relative',
+            overflow: 'hidden',
+            border: '1px solid rgba(255, 255, 255, 0.14)'
+          }}>
+            {/* Right-side radial ocean glow */}
+            <div style={{
+              position: 'absolute',
+              right: 0,
+              top: 0,
+              width: '45%',
+              height: '100%',
+              background: 'radial-gradient(ellipse at 92% 45%, rgba(3, 105, 161, 0.35) 0%, rgba(10, 51, 111, 0.18) 42%, transparent 75%)',
+              pointerEvents: 'none'
+            }} />
+
+            {/* Hero Top: Date, Location & Condition Badge */}
+            <div style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'flex-start',
+              justifyContent: 'space-between',
+              gap: '20px',
+              position: 'relative',
+              zIndex: 1
+            }}>
+              {/* Date & Location */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '15px', fontWeight: 500, color: 'rgba(255,255,255,0.92)' }}>
+                  <Calendar size={18} color="rgba(255,255,255,0.85)" />
+                  <span>{forecastData.hero.dateFormatted}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '28px', fontWeight: 800, marginTop: '8px', color: '#ffffff', letterSpacing: '-0.01em' }}>
+                  <MapPin size={24} color="#ffffff" strokeWidth={2.4} />
+                  <span>{forecastData.hero.locationTitle}</span>
+                </div>
+              </div>
+
+              {/* Weather Icon & Condition Name in Frosted Glass Badge */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+                backgroundColor: 'rgba(255, 255, 255, 0.12)',
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)',
+                padding: '12px 24px',
+                borderRadius: '22px',
+                border: '1px solid rgba(255, 255, 255, 0.22)',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)'
+              }}>
+                <BmdWeatherIcon iconType={forecastData.hero.conditionIcon} size={48} />
+                <div>
+                  <div style={{ fontSize: '22px', fontWeight: 800, color: '#ffffff', lineHeight: 1.2 }}>
+                    {forecastData.hero.conditionText}
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.8)', marginTop: '2px' }}>
+                    {forecastData.hero.isNight ? (lang === 'bn' ? 'রাত্রিকালীন অবস্থা' : 'Night Time') : (lang === 'bn' ? 'দিবাকালীন অবস্থা' : 'Day Time')}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Divider 1 */}
+            <div style={{ height: '1px', backgroundColor: 'rgba(255, 255, 255, 0.12)', margin: '24px 0 22px', position: 'relative', zIndex: 1 }} />
+
+            {/* Hero Metrics: Humidity, Temperature & Real Feel, Wind */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+              gap: '24px',
+              alignItems: 'center',
+              position: 'relative',
+              zIndex: 1
+            }}>
+              {/* 1. Relative Humidity */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{
+                  width: '54px',
+                  height: '54px',
+                  borderRadius: '16px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  backdropFilter: 'blur(10px)',
+                  WebkitBackdropFilter: 'blur(10px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  <Droplets size={26} color="#38bdf8" strokeWidth={2} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.75)', fontWeight: 500 }}>
+                    {lang === 'bn' ? 'আপেক্ষিক আর্দ্রতা' : 'Relative Humidity'}
+                  </div>
+                  <div style={{ fontSize: '28px', fontWeight: 800, color: '#ffffff', lineHeight: 1.15, marginTop: '2px' }}>
+                    {forecastData.hero.humidityFormatted}
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Temperature & Real Feel */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{
+                  width: '54px',
+                  height: '54px',
+                  borderRadius: '16px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  backdropFilter: 'blur(10px)',
+                  WebkitBackdropFilter: 'blur(10px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  <Thermometer size={26} color="#fca5a5" strokeWidth={2} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.75)', fontWeight: 500 }}>
+                    {lang === 'bn' ? 'তাপমাত্রা' : 'Temperature'}
+                  </div>
+                  <div style={{ fontSize: '28px', fontWeight: 800, color: '#ffffff', lineHeight: 1.15, marginTop: '2px' }}>
+                    {forecastData.hero.tempFormatted}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#fef08a', fontWeight: 600, marginTop: '3px' }}>
+                    {forecastData.hero.realFeelFormatted}
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Wind Speed & Direction */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{
+                  width: '54px',
+                  height: '54px',
+                  borderRadius: '16px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  backdropFilter: 'blur(10px)',
+                  WebkitBackdropFilter: 'blur(10px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  <Wind size={26} color="#5eead4" strokeWidth={2} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.75)', fontWeight: 500 }}>
+                    {lang === 'bn' ? 'বাতাসের গতিবেগ ও দিক' : 'Wind Speed & Direction'}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '26px', fontWeight: 800, color: '#ffffff', lineHeight: 1.15, marginTop: '2px' }}>
+                    <span>{forecastData.hero.windSpeedFormatted}</span>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#22d3ee' }}>
+                      <Navigation
+                        size={18}
+                        style={{
+                          transform: `rotate(${forecastData.hero.windDirectionDeg}deg)`,
+                          transition: 'transform 0.3s ease'
+                        }}
+                      />
+                      <span style={{ fontSize: '20px', fontWeight: 800 }}>{forecastData.hero.windDirectionText}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Divider 2 */}
+            <div style={{ height: '1px', backgroundColor: 'rgba(255, 255, 255, 0.1)', margin: '22px 0 14px', position: 'relative', zIndex: 1 }} />
+
+            {/* Source & Attribution Time Bar */}
+            <div style={{
+              fontSize: '11.5px',
+              color: 'rgba(255, 255, 255, 0.65)',
+              textAlign: 'right',
+              position: 'relative',
+              zIndex: 1
+            }}>
+              <span>{forecastData.hero.dataSourceTime}</span>
+            </div>
+          </div>
+
+          {/* -------------------------------------------------------------
+              8-DAY DAILY FORECAST GRID: Weather Cards
+             ------------------------------------------------------------- */}
+          <div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '14px'
+            }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
+                {lang === 'bn' ? 'আগামী ৮ দিনের দৈনিক আবহাওয়ার পূর্বাভাস' : '8-Day Daily Weather Forecast'}
+              </h3>
+              <span style={{ fontSize: '12px', color: '#64748b' }}>
+                {lang === 'bn' ? 'বিএমডিডাব্লিউআরএফ আবহাওয়া মডেল অনুযায়ী' : 'According to BMDWRF Numerical Model'}
+              </span>
+            </div>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
+              gap: '12px'
+            }}>
+              {forecastData.daily.map(day => (
+                <div
+                  key={day.dayIndex}
+                  style={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '14px',
+                    padding: '14px 10px',
+                    textAlign: 'center',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+                    transition: 'all 0.2s ease',
+                    position: 'relative'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-3px)';
+                    e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.08)';
+                    e.currentTarget.style.borderColor = '#0284c7';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.02)';
+                    e.currentTarget.style.borderColor = '#e2e8f0';
+                  }}
+                >
+                  {/* Weekday & Date */}
+                  <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
+                    {day.dateWeek}
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '8px' }}>
+                    {day.dateFormatted.split(',')[0]}
+                  </div>
+
+                  <hr style={{ border: 'none', borderTop: '1px solid #f1f5f9', margin: '6px 0' }} />
+
+                  {/* Weather Icon with Night Mini Badge */}
+                  <div style={{ position: 'relative', display: 'inline-block', margin: '6px 0' }}>
+                    <BmdWeatherIcon iconType={day.conditionIcon} size={44} />
+                    <div style={{
+                      position: 'absolute',
+                      right: '-6px',
+                      bottom: '-4px',
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '50%',
+                      backgroundColor: '#0f172a',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '1.5px solid #ffffff'
+                    }}>
+                      <BmdWeatherIcon iconType={day.conditionNightIcon} size={14} />
+                    </div>
+                  </div>
+
+                  <div style={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    color: '#2563eb',
+                    minHeight: '26px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    lineHeight: 1.2
+                  }}>
+                    {day.conditionText}
+                  </div>
+
+                  <hr style={{ border: 'none', borderTop: '1px solid #f1f5f9', margin: '6px 0' }} />
+
+                  {/* Temperature Max / Min */}
+                  <div style={{ fontSize: '13px', fontWeight: 800, color: '#dc2626' }}>
+                    {day.tempFormatted}
+                  </div>
+
+                  <hr style={{ border: 'none', borderTop: '1px solid #f1f5f9', margin: '6px 0' }} />
+
+                  {/* Rain */}
+                  <div style={{ fontSize: '11px', color: '#0284c7', fontWeight: 600 }}>
+                    {day.rainFormatted}
+                  </div>
+
+                  <hr style={{ border: 'none', borderTop: '1px solid #f1f5f9', margin: '6px 0' }} />
+
+                  {/* Wind Direction & Speed */}
+                  <div style={{
+                    fontSize: '11px',
+                    color: '#0f766e',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px'
+                  }}>
+                    <Navigation
+                      size={11}
+                      style={{ transform: `rotate(${day.windDirectionDeg}deg)` }}
+                    />
+                    <span>{day.windFormatted}</span>
+                  </div>
+
+                  <hr style={{ border: 'none', borderTop: '1px solid #f1f5f9', margin: '6px 0' }} />
+
+                  {/* Relative Humidity */}
+                  <div style={{ fontSize: '11px', color: '#16a34a', fontWeight: 600 }}>
+                    {day.humidityFormatted}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* -------------------------------------------------------------
+              3-HOURLY INTERACTIVE HIGH-PRECISION CHARTS
+             ------------------------------------------------------------- */}
+          <BmdHourlyCharts
+            hourly={forecastData.hourly}
+            upazilaName={upazilaLabel || forecastData.upazilaName}
+            lang={lang}
+          />
+
+        </>
+      ) : null}
+    </div>
+  );
+}

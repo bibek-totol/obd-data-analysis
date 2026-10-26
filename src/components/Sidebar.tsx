@@ -9,16 +9,18 @@ import {
   ChevronRight,
   ArrowLeft,
   ArrowRight,
-  ShieldCheck
+  ShieldCheck,
+  Compass
 } from 'lucide-react';
 
-export type ActiveSection = 'forecast' | 'advisory';
+export type ActiveSection = 'forecast' | 'advisory' | 'bmd-forecast';
 
 interface WebsiteItem {
   id: string;
   name: string;
   domain: string;
   active: boolean;
+  themeColor: string;
   subsections: {
     id: ActiveSection;
     label: string;
@@ -46,6 +48,7 @@ export default function Sidebar({
       name: 'NLS Portal (NLAS)',
       domain: 'nlas.dls.gov.bd',
       active: true,
+      themeColor: '#006a4e',
       subsections: [
         {
           id: 'forecast',
@@ -57,14 +60,30 @@ export default function Sidebar({
           id: 'advisory',
           label: 'Advisory Section',
           icon: FileText,
-          badge: 'Upcoming'
+          badge: 'Live'
+        }
+      ]
+    },
+    {
+      id: 'bmd',
+      name: 'BMD Portal (USF)',
+      domain: 'usf.bmd.gov.bd',
+      active: true,
+      themeColor: '#0369a1',
+      subsections: [
+        {
+          id: 'bmd-forecast',
+          label: 'Upazila Weather Forecast',
+          icon: Compass,
+          badge: 'Live'
         }
       ]
     }
   ]);
 
   const [expandedSites, setExpandedSites] = useState<Record<string, boolean>>({
-    nlas: true
+    nlas: true,
+    bmd: true
   });
 
   const toggleSite = (siteId: string) => {
@@ -175,7 +194,7 @@ export default function Sidebar({
                       width: '32px',
                       height: '32px',
                       borderRadius: '8px',
-                      backgroundColor: site.active ? '#006a4e' : '#64748b',
+                      backgroundColor: site.active ? site.themeColor : '#64748b',
                       color: '#ffffff',
                       display: 'flex',
                       alignItems: 'center',
@@ -247,13 +266,15 @@ export default function Sidebar({
                             justifyContent: 'space-between',
                             padding: '9px 12px',
                             borderRadius: '8px',
-                            backgroundColor: isSelected ? '#006a4e' : 'transparent',
+                            backgroundColor: isSelected ? site.themeColor : 'transparent',
                             color: isSelected ? '#ffffff' : '#334155',
                             fontWeight: isSelected ? 600 : 500,
                             fontSize: '13px',
                             transition: 'all 0.15s ease',
                             textAlign: 'left',
-                            width: '100%'
+                            width: '100%',
+                            border: 'none',
+                            cursor: 'pointer'
                           }}
                           onMouseEnter={(e) => {
                             if (!isSelected) {

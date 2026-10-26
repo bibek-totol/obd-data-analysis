@@ -1,10 +1,9 @@
-'use client';
-
 import React from 'react';
 import { RefreshCw } from 'lucide-react';
+import { ActiveSection } from './Sidebar';
 
 interface HeaderProps {
-  activeSection?: 'forecast' | 'advisory';
+  activeSection?: ActiveSection;
   onReload: () => void;
   isLoading: boolean;
   lastUpdated?: string;
@@ -16,6 +15,8 @@ export default function Header({
   isLoading,
   lastUpdated
 }: HeaderProps) {
+  const isBmd = activeSection === 'bmd-forecast';
+
   return (
     <header style={{
       backgroundColor: '#ffffff',
@@ -32,17 +33,32 @@ export default function Header({
       {/* Left: Branding & Logos */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{
-            background: 'linear-gradient(135deg, #006a4e 0%, #004d37 100%)',
-            color: '#ffffff',
-            padding: '5px 12px',
-            borderRadius: '6px',
-            fontWeight: 800,
-            fontSize: '15px',
-            letterSpacing: '0.05em'
-          }}>
-            CARE <span style={{ fontSize: '10px', fontWeight: 500, color: '#a7f3d0' }}>SOUTH ASIA</span>
-          </div>
+          {isBmd ? (
+            <div style={{
+              background: 'linear-gradient(135deg, #0a336f 0%, #0369a1 100%)',
+              color: '#ffffff',
+              padding: '5px 12px',
+              borderRadius: '6px',
+              fontWeight: 800,
+              fontSize: '15px',
+              letterSpacing: '0.05em',
+              boxShadow: '0 2px 6px rgba(3, 105, 161, 0.25)'
+            }}>
+              BMD <span style={{ fontSize: '10px', fontWeight: 500, color: '#bae6fd' }}>BANGLADESH</span>
+            </div>
+          ) : (
+            <div style={{
+              background: 'linear-gradient(135deg, #006a4e 0%, #004d37 100%)',
+              color: '#ffffff',
+              padding: '5px 12px',
+              borderRadius: '6px',
+              fontWeight: 800,
+              fontSize: '15px',
+              letterSpacing: '0.05em'
+            }}>
+              NLS <span style={{ fontSize: '10px', fontWeight: 500, color: '#a7f3d0' }}>BANGLADESH</span>
+            </div>
+          )}
           <div style={{ height: '24px', width: '1px', backgroundColor: '#cbd5e1' }} />
           <div>
             <h1 style={{
@@ -51,14 +67,16 @@ export default function Header({
               color: '#0f172a',
               lineHeight: 1.2
             }}>
-              National Livestock Advisory System
+              {isBmd ? 'Upazila Weather Forecast Portal (USF)' : 'National Livestock Advisory System'}
             </h1>
             <p style={{
               fontSize: '11px',
               color: '#64748b',
               fontWeight: 500
             }}>
-              Department of Livestock Services (DLS) • Govt. of the People&apos;s Republic of Bangladesh
+              {isBmd
+                ? 'Bangladesh Meteorological Department (BMD) & RIMES • Govt. of Bangladesh'
+                : 'Department of Livestock Services (DLS) • Govt. of the People\'s Republic of Bangladesh'}
             </p>
           </div>
         </div>
@@ -70,9 +88,17 @@ export default function Header({
         <button
           onClick={onReload}
           disabled={isLoading}
-          id={activeSection === 'forecast' ? 'btn-reload-latest-forecast' : 'btn-reload-latest-advisory'}
+          id={
+            isBmd
+              ? 'btn-reload-latest-bmd-forecast'
+              : activeSection === 'forecast'
+              ? 'btn-reload-latest-forecast'
+              : 'btn-reload-latest-advisory'
+          }
           title={
-            activeSection === 'forecast'
+            isBmd
+              ? 'Click to fetch fresh real-time BMDWRF weather forecast'
+              : activeSection === 'forecast'
               ? 'Click to fetch fresh real-time weather forecast'
               : 'Click to fetch fresh real-time regional advisory directives'
           }
@@ -80,39 +106,43 @@ export default function Header({
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            backgroundColor: isLoading ? '#e2e8f0' : '#006a4e',
+            backgroundColor: isLoading ? '#e2e8f0' : (isBmd ? '#0369a1' : '#006a4e'),
             color: isLoading ? '#64748b' : '#ffffff',
             padding: '8px 16px',
             borderRadius: '8px',
             fontSize: '13px',
             fontWeight: 600,
+            border: 'none',
             transition: 'all 0.2s ease',
-            boxShadow: isLoading ? 'none' : '0 2px 8px rgba(0, 106, 78, 0.25)',
+            boxShadow: isLoading
+              ? 'none'
+              : isBmd
+              ? '0 2px 8px rgba(3, 105, 161, 0.25)'
+              : '0 2px 8px rgba(0, 106, 78, 0.25)',
             cursor: isLoading ? 'not-allowed' : 'pointer'
           }}
           onMouseEnter={(e) => {
             if (!isLoading) {
-              e.currentTarget.style.backgroundColor = '#00523d';
+              e.currentTarget.style.backgroundColor = isBmd ? '#075985' : '#00523d';
               e.currentTarget.style.transform = 'translateY(-1px)';
             }
           }}
           onMouseLeave={(e) => {
             if (!isLoading) {
-              e.currentTarget.style.backgroundColor = '#006a4e';
+              e.currentTarget.style.backgroundColor = isBmd ? '#0369a1' : '#006a4e';
               e.currentTarget.style.transform = 'translateY(0)';
             }
           }}
         >
-          <RefreshCw
-            size={15}
-            style={{
-              animation: isLoading ? 'spin 0.8s linear infinite' : 'none'
-            }}
-          />
+          <RefreshCw size={15} className={isLoading ? 'animate-spin-fast' : ''} />
           <span>
             {isLoading
-              ? (activeSection === 'forecast' ? 'Reloading Forecast...' : 'Reloading Advisory...')
-              : (activeSection === 'forecast' ? 'Reload Latest Forecast' : 'Reload Latest Advisory')}
+              ? 'Fetching Data...'
+              : isBmd
+              ? 'Reload Latest BMD Feed'
+              : activeSection === 'forecast'
+              ? 'Reload Latest Forecast'
+              : 'Reload Latest Advisory'}
           </span>
         </button>
 
