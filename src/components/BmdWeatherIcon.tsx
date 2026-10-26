@@ -5,15 +5,18 @@ interface BmdWeatherIconProps {
   size?: number;
   className?: string;
   title?: string;
+  isNight?: boolean;
 }
 
 export default function BmdWeatherIcon({
   iconType,
   size = 48,
   className = '',
-  title
+  title,
+  isNight = false
 }: BmdWeatherIconProps) {
   const norm = (iconType || 'sunny').toLowerCase();
+  const effectiveIsNight = isNight || norm.includes('night');
 
   // Color Palette
   const sunGold = '#f59e0b';
@@ -27,8 +30,8 @@ export default function BmdWeatherIcon({
   const moonSilver = '#cbd5e1';
   const moonGlow = '#e2e8f0';
 
-  // 1. Sunny
-  if (norm.includes('sunny') && !norm.includes('cloud') && !norm.includes('rain')) {
+  // 1. Sunny (Day)
+  if (!effectiveIsNight && norm.includes('sunny') && !norm.includes('cloud') && !norm.includes('rain')) {
     return (
       <svg width={size} height={size} viewBox="0 0 64 64" fill="none" className={className} aria-label={title || 'Sunny'}>
         <circle cx="32" cy="32" r="14" fill={sunGold} />
@@ -49,7 +52,7 @@ export default function BmdWeatherIcon({
   }
 
   // 2. Clear Night
-  if (norm.includes('clear_night') || norm === 'night' || norm === 'clear') {
+  if (effectiveIsNight && (!norm.includes('cloud') && !norm.includes('rain')) || norm.includes('clear_night') || norm === 'night' || norm === 'clear') {
     return (
       <svg width={size} height={size} viewBox="0 0 64 64" fill="none" className={className} aria-label={title || 'Clear Night'}>
         <path
@@ -139,12 +142,10 @@ export default function BmdWeatherIcon({
   }
 
   // 5. Partly Cloudy / Mostly Cloudy (Day & Night)
-  const isNight = norm.includes('night');
-
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" className={className} aria-label={title || 'Partly Cloudy'}>
       {/* Sun or Moon in background */}
-      {!isNight ? (
+      {!effectiveIsNight ? (
         <g>
           <circle cx="26" cy="24" r="11" fill={sunGold} />
           <line x1="26" y1="8" x2="26" y2="11" stroke={sunGold} strokeWidth="3" strokeLinecap="round" />
