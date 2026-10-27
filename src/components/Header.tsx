@@ -16,6 +16,10 @@ export default function Header({
   lastUpdated
 }: HeaderProps) {
   const isBmd = activeSection === 'bmd-forecast';
+  const isBamis = activeSection === 'bamis-bulletin';
+
+  const themeColor = isBmd ? '#0369a1' : isBamis ? '#0c713e' : '#006a4e';
+  const themeHoverColor = isBmd ? '#075985' : isBamis ? '#084f2b' : '#00523d';
 
   return (
     <header style={{
@@ -46,6 +50,19 @@ export default function Header({
             }}>
               BMD <span style={{ fontSize: '10px', fontWeight: 500, color: '#bae6fd' }}>BANGLADESH</span>
             </div>
+          ) : isBamis ? (
+            <div style={{
+              background: 'linear-gradient(135deg, #054c27 0%, #0c713e 100%)',
+              color: '#ffffff',
+              padding: '5px 12px',
+              borderRadius: '6px',
+              fontWeight: 800,
+              fontSize: '15px',
+              letterSpacing: '0.05em',
+              boxShadow: '0 2px 6px rgba(12, 113, 62, 0.25)'
+            }}>
+              BAMIS <span style={{ fontSize: '10px', fontWeight: 500, color: '#bbf7d0' }}>BANGLADESH</span>
+            </div>
           ) : (
             <div style={{
               background: 'linear-gradient(135deg, #006a4e 0%, #004d37 100%)',
@@ -67,7 +84,11 @@ export default function Header({
               color: '#0f172a',
               lineHeight: 1.2
             }}>
-              {isBmd ? 'Upazila Weather Forecast Portal (USF)' : 'National Livestock Advisory System'}
+              {isBmd
+                ? 'Upazila Weather Forecast Portal (USF)'
+                : isBamis
+                ? 'District Agromet Advisory Bulletin (BAMIS)'
+                : 'National Livestock Advisory System'}
             </h1>
             <p style={{
               fontSize: '11px',
@@ -76,6 +97,8 @@ export default function Header({
             }}>
               {isBmd
                 ? 'Bangladesh Meteorological Department (BMD) & RIMES • Govt. of Bangladesh'
+                : isBamis
+                ? 'Department of Agricultural Extension (DAE) • Ministry of Agriculture • Govt. of Bangladesh'
                 : 'Department of Livestock Services (DLS) • Govt. of the People\'s Republic of Bangladesh'}
             </p>
           </div>
@@ -91,6 +114,8 @@ export default function Header({
           id={
             isBmd
               ? 'btn-reload-latest-bmd-forecast'
+              : isBamis
+              ? 'btn-reload-latest-bamis-bulletin'
               : activeSection === 'forecast'
               ? 'btn-reload-latest-forecast'
               : 'btn-reload-latest-advisory'
@@ -98,6 +123,8 @@ export default function Header({
           title={
             isBmd
               ? 'Click to fetch fresh real-time BMDWRF weather forecast'
+              : isBamis
+              ? 'Click to fetch fresh real-time BAMIS agromet bulletin'
               : activeSection === 'forecast'
               ? 'Click to fetch fresh real-time weather forecast'
               : 'Click to fetch fresh real-time regional advisory directives'
@@ -106,7 +133,7 @@ export default function Header({
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            backgroundColor: isLoading ? '#e2e8f0' : (isBmd ? '#0369a1' : '#006a4e'),
+            backgroundColor: isLoading ? '#e2e8f0' : themeColor,
             color: isLoading ? '#64748b' : '#ffffff',
             padding: '8px 16px',
             borderRadius: '8px',
@@ -116,20 +143,18 @@ export default function Header({
             transition: 'all 0.2s ease',
             boxShadow: isLoading
               ? 'none'
-              : isBmd
-              ? '0 2px 8px rgba(3, 105, 161, 0.25)'
-              : '0 2px 8px rgba(0, 106, 78, 0.25)',
+              : `0 2px 8px ${themeColor}40`,
             cursor: isLoading ? 'not-allowed' : 'pointer'
           }}
           onMouseEnter={(e) => {
             if (!isLoading) {
-              e.currentTarget.style.backgroundColor = isBmd ? '#075985' : '#00523d';
+              e.currentTarget.style.backgroundColor = themeHoverColor;
               e.currentTarget.style.transform = 'translateY(-1px)';
             }
           }}
           onMouseLeave={(e) => {
             if (!isLoading) {
-              e.currentTarget.style.backgroundColor = isBmd ? '#0369a1' : '#006a4e';
+              e.currentTarget.style.backgroundColor = themeColor;
               e.currentTarget.style.transform = 'translateY(0)';
             }
           }}
@@ -140,6 +165,8 @@ export default function Header({
               ? 'Fetching Data...'
               : isBmd
               ? 'Reload Latest BMD Feed'
+              : isBamis
+              ? 'Reload Latest BAMIS Feed'
               : activeSection === 'forecast'
               ? 'Reload Latest Forecast'
               : 'Reload Latest Advisory'}

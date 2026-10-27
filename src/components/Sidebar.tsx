@@ -10,10 +10,11 @@ import {
   ArrowLeft,
   ArrowRight,
   ShieldCheck,
-  Compass
+  Compass,
+  Sprout
 } from 'lucide-react';
 
-export type ActiveSection = 'forecast' | 'advisory' | 'bmd-forecast';
+export type ActiveSection = 'forecast' | 'advisory' | 'bmd-forecast' | 'bamis-bulletin';
 
 interface WebsiteItem {
   id: string;
@@ -78,12 +79,28 @@ export default function Sidebar({
           badge: 'Live'
         }
       ]
+    },
+    {
+      id: 'bamis',
+      name: 'BAMIS Portal (DAE)',
+      domain: 'bamis.gov.bd',
+      active: true,
+      themeColor: '#0c713e',
+      subsections: [
+        {
+          id: 'bamis-bulletin',
+          label: 'District Agromet Bulletin',
+          icon: Sprout,
+          badge: 'Live'
+        }
+      ]
     }
   ]);
 
   const [expandedSites, setExpandedSites] = useState<Record<string, boolean>>({
     nlas: true,
-    bmd: true
+    bmd: true,
+    bamis: true
   });
 
   const toggleSite = (siteId: string) => {

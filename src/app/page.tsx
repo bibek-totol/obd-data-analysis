@@ -9,6 +9,7 @@ import DailyForecastGrid from '@/components/DailyForecastGrid';
 import HourlyForecastCharts from '@/components/HourlyForecastCharts';
 import AdvisorySection from '@/components/AdvisorySection';
 import BmdSection from '@/components/BmdSection';
+import BamisSection from '@/components/BamisSection';
 import DistrictAllUpazilasView from '@/components/DistrictAllUpazilasView';
 import { DistrictForecastResponseData } from '@/lib/district-forecast';
 import {
@@ -56,6 +57,11 @@ export default function HomePage() {
   const [bmdLastReloadTime, setBmdLastReloadTime] = useState<string>('');
   const bmdReloadRef = React.useRef<(() => void) | null>(null);
 
+  // BAMIS Portal Section Reload States
+  const [isBamisLoading, setIsBamisLoading] = useState<boolean>(false);
+  const [bamisLastReloadTime, setBamisLastReloadTime] = useState<string>('');
+  const bamisReloadRef = React.useRef<(() => void) | null>(null);
+
   // Header Context-Aware Reload Handler
   const handleHeaderReload = () => {
     if (activeSection === 'forecast') {
@@ -71,6 +77,10 @@ export default function HomePage() {
     } else if (activeSection === 'bmd-forecast') {
       if (bmdReloadRef.current) {
         bmdReloadRef.current();
+      }
+    } else if (activeSection === 'bamis-bulletin') {
+      if (bamisReloadRef.current) {
+        bamisReloadRef.current();
       }
     }
   };
@@ -318,14 +328,18 @@ export default function HomePage() {
             ? (viewMode === 'all' ? isLoadingDistrict : isLoadingForecast)
             : activeSection === 'advisory'
               ? isAdvisoryLoading
-              : isBmdLoading
+              : activeSection === 'bamis-bulletin'
+                ? isBamisLoading
+                : isBmdLoading
         }
         lastUpdated={
           activeSection === 'forecast'
             ? (viewMode === 'all' ? districtReloadTime : lastReloadTime)
             : activeSection === 'advisory'
               ? advisoryLastReloadTime
-              : bmdLastReloadTime
+              : activeSection === 'bamis-bulletin'
+                ? bamisLastReloadTime
+                : bmdLastReloadTime
         }
       />
 
@@ -355,7 +369,32 @@ export default function HomePage() {
             flexWrap: 'wrap',
             gap: '12px'
           }}>
-            {activeSection === 'bmd-forecast' ? (
+            {activeSection === 'bamis-bulletin' ? (
+              <div>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '12px',
+                  color: '#64748b',
+                  fontWeight: 600
+                }}>
+                  <span>BAMIS Portal (DAE)</span>
+                  <span>/</span>
+                  <span style={{ color: '#0c713e', fontWeight: 700 }}>
+                    District Agromet Bulletin
+                  </span>
+                </div>
+                <h1 style={{
+                  fontSize: '22px',
+                  fontWeight: 800,
+                  color: '#0f172a',
+                  marginTop: '4px'
+                }}>
+                  District Agromet Advisory Bulletin (bamis.gov.bd)
+                </h1>
+              </div>
+            ) : activeSection === 'bmd-forecast' ? (
               <div>
                 <div style={{
                   display: 'flex',
@@ -454,7 +493,9 @@ export default function HomePage() {
                 ? (viewMode === 'all' ? districtReloadTime : lastReloadTime)
                 : activeSection === 'advisory'
                   ? advisoryLastReloadTime
-                  : bmdLastReloadTime) && (
+                  : activeSection === 'bamis-bulletin'
+                    ? bamisLastReloadTime
+                    : bmdLastReloadTime) && (
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -470,7 +511,13 @@ export default function HomePage() {
                   }}>
                     <CheckCircle2
                       size={14}
-                      color={activeSection === 'bmd-forecast' ? '#0369a1' : '#10b981'}
+                      color={
+                        activeSection === 'bmd-forecast'
+                          ? '#0369a1'
+                          : activeSection === 'bamis-bulletin'
+                          ? '#0c713e'
+                          : '#10b981'
+                      }
                     />
                     <span>
                       Synchronized at: <strong>
@@ -478,7 +525,9 @@ export default function HomePage() {
                           ? (viewMode === 'all' ? districtReloadTime : lastReloadTime)
                           : activeSection === 'advisory'
                             ? advisoryLastReloadTime
-                            : bmdLastReloadTime}
+                            : activeSection === 'bamis-bulletin'
+                              ? bamisLastReloadTime
+                              : bmdLastReloadTime}
                       </strong>
                     </span>
                   </div>
@@ -518,8 +567,14 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* Conditional View: BMD USF vs Advisory vs NLAS Forecast */}
-          {activeSection === 'bmd-forecast' ? (
+          {/* Conditional View: BAMIS Bulletin vs BMD USF vs Advisory vs NLAS Forecast */}
+          {activeSection === 'bamis-bulletin' ? (
+            <BamisSection
+              onRegisterReload={(fn) => { bamisReloadRef.current = fn; }}
+              onLoadingChange={setIsBamisLoading}
+              onLastReloadTimeChange={setBamisLastReloadTime}
+            />
+          ) : activeSection === 'bmd-forecast' ? (
             <BmdSection
               onRegisterReload={(fn) => { bmdReloadRef.current = fn; }}
               onLoadingChange={setIsBmdLoading}

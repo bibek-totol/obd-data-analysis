@@ -144,11 +144,11 @@ export default function BmdDistrictAllUpazilasView({
               <MapPin size={15} />
               <span>{lang === 'bn' ? 'জেলা ভিত্তিক সার্বিক আবহাওয়া পর্যবেক্ষণ' : 'District-Wide Weather Intelligence'}</span>
             </div>
-            <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
+            {/* <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
               {lang === 'bn'
                 ? `${districtName} জেলা — সকল ${metrics.rainyCountFormatted ? totalUpazilas : totalUpazilas}টি উপজেলার আবহাওয়া তথ্য`
                 : `${districtName} District — All ${totalUpazilas} Upazilas Weather Overview`}
-            </h2>
+            </h2> */}
             <p style={{ fontSize: '13px', color: '#64748b', marginTop: '2px' }}>
               {lang === 'bn'
                 ? `BMDWRF মডেল ভিত্তিক রিয়েল-টাইম পর্যবেক্ষণ, ৭ দিনের পূর্বাভাস এবং ৩-ঘণ্টার ব্যবধানের ডাটা।`
@@ -218,18 +218,7 @@ export default function BmdDistrictAllUpazilasView({
             alignItems: 'center',
             gap: '14px'
           }}>
-            <div style={{
-              width: '44px',
-              height: '44px',
-              borderRadius: '10px',
-              backgroundColor: '#e0f2fe',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#0369a1'
-            }}>
-              <MapPin size={22} />
-            </div>
+
             <div>
               <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>
                 {lang === 'bn' ? 'পর্যবেক্ষিত উপজেলা' : 'Monitored Upazilas'}
@@ -253,18 +242,7 @@ export default function BmdDistrictAllUpazilasView({
             alignItems: 'center',
             gap: '14px'
           }}>
-            <div style={{
-              width: '44px',
-              height: '44px',
-              borderRadius: '10px',
-              backgroundColor: '#fee2e2',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#dc2626'
-            }}>
-              <Thermometer size={22} />
-            </div>
+
             <div>
               <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>
                 {lang === 'bn' ? 'জেলার তাপমাত্রা বিস্তার' : 'District Temp Range'}
@@ -289,18 +267,7 @@ export default function BmdDistrictAllUpazilasView({
             alignItems: 'center',
             gap: '14px'
           }}>
-            <div style={{
-              width: '44px',
-              height: '44px',
-              borderRadius: '10px',
-              backgroundColor: '#e0f2fe',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#0284c7'
-            }}>
-              <Droplets size={22} />
-            </div>
+
             <div>
               <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>
                 {lang === 'bn' ? 'গড় আপেক্ষিক আর্দ্রতা' : 'Average Humidity'}
@@ -324,18 +291,7 @@ export default function BmdDistrictAllUpazilasView({
             alignItems: 'center',
             gap: '14px'
           }}>
-            <div style={{
-              width: '44px',
-              height: '44px',
-              borderRadius: '10px',
-              backgroundColor: metrics.rainyUpazilasCount > 0 ? '#dbeafe' : '#f1f5f9',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: metrics.rainyUpazilasCount > 0 ? '#2563eb' : '#64748b'
-            }}>
-              <CloudRain size={22} />
-            </div>
+
             <div>
               <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>
                 {lang === 'bn' ? 'বৃষ্টিপাত সতর্কতা' : 'Rainfall Alert'}
@@ -474,7 +430,7 @@ export default function BmdDistrictAllUpazilasView({
                 outline: 'none'
               }}
             >
-              <option value="name">{lang === 'bn' ? 'সাজান: নাম (অ-ক্ষর)' : 'Sort: Name (A-Z)'}</option>
+              <option value="name">{lang === 'bn' ? 'সাজান: নাম' : 'Sort: Name (A-Z)'}</option>
               <option value="temp-high">{lang === 'bn' ? 'সাজান: সর্বোচ্চ তাপমাত্রা' : 'Sort: Highest Temp'}</option>
               <option value="temp-low">{lang === 'bn' ? 'সাজান: সর্বনিম্ন তাপমাত্রা' : 'Sort: Lowest Temp'}</option>
               <option value="humidity">{lang === 'bn' ? 'সাজান: সর্বোচ্চ আর্দ্রতা' : 'Sort: Highest Humidity'}</option>
@@ -609,19 +565,7 @@ export default function BmdDistrictAllUpazilasView({
                   {/* Top Bar: Upazila Name, Code, Day/Night */}
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '12px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <div style={{
-                        width: '38px',
-                        height: '38px',
-                        borderRadius: '10px',
-                        backgroundColor: '#e0f2fe',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#0369a1',
-                        flexShrink: 0
-                      }}>
-                        <MapPin size={20} />
-                      </div>
+
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <h4 style={{ fontSize: '19px', fontWeight: 800, color: '#0f172a', margin: 0, lineHeight: 1.2 }}>
