@@ -217,7 +217,14 @@ export function parseDateFromStepTime(timeStr: string): { year: number; month: n
   };
 }
 
+// Fast in-memory caches for static metadata
+let districtsCache: DistrictItem[] | null = null;
+const upazilasCache = new Map<string, UpazilaItem[]>();
+
 export async function fetchDistricts(): Promise<DistrictItem[]> {
+  if (districtsCache && districtsCache.length > 0) {
+    return districtsCache;
+  }
   try {
     const res = await fetch(`${NLAS_BASE_URL}common/get_district.php`, {
       next: { revalidate: 3600 },
@@ -225,7 +232,11 @@ export async function fetchDistricts(): Promise<DistrictItem[]> {
     });
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     const data = await res.json();
-    return data.all_district || [];
+    if (data.all_district && data.all_district.length > 0) {
+      districtsCache = data.all_district;
+      return data.all_district;
+    }
+    return DEFAULT_DISTRICTS;
   } catch (err) {
     console.error('Failed to fetch districts, using fallback:', err);
     return DEFAULT_DISTRICTS;
@@ -233,6 +244,9 @@ export async function fetchDistricts(): Promise<DistrictItem[]> {
 }
 
 export async function fetchUpazilas(districtCode: string): Promise<UpazilaItem[]> {
+  if (upazilasCache.has(districtCode)) {
+    return upazilasCache.get(districtCode)!;
+  }
   try {
     const res = await fetch(`${NLAS_BASE_URL}common/get_upazila.php?name_code=${encodeURIComponent(districtCode)}`, {
       next: { revalidate: 3600 },
@@ -240,7 +254,12 @@ export async function fetchUpazilas(districtCode: string): Promise<UpazilaItem[]
     });
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     const data = await res.json();
-    return data.all_upazila || [];
+    const list = data.all_upazila || [];
+    if (list.length > 0) {
+      upazilasCache.set(districtCode, list);
+      return list;
+    }
+    return DEFAULT_UPAZILAS[districtCode] || [];
   } catch (err) {
     console.error(`Failed to fetch upazilas for ${districtCode}:`, err);
     return DEFAULT_UPAZILAS[districtCode] || [];
@@ -249,50 +268,84 @@ export async function fetchUpazilas(districtCode: string): Promise<UpazilaItem[]
 
 // In-memory cache for fast response times
 const memoryCache = new Map<string, { data: ForecastResponseData; cachedAt: number }>();
-const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes cache
+const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes cache
+const activeRevalidations = new Set<string>();
+
+// Helper to fetch meteorological JSON with independent timeouts and fresh signals
+async function fetchMeteorologicalJson(primaryUrl: string, backupUrl: string): Promise<any> {
+  // 1. Try primary CDN with 3.5s timeout
+  try {
+    const ctrl1 = new AbortController();
+    const t1 = setTimeout(() => ctrl1.abort(), 3500);
+    const res1 = await fetch(primaryUrl, {
+      signal: ctrl1.signal,
+      cache: 'no-store',
+      headers: { 'Accept': 'application/json' }
+    });
+    clearTimeout(t1);
+    if (res1.ok) {
+      const json1 = await res1.json();
+      if (json1 && json1.data) return json1;
+    }
+  } catch {}
+
+  // 2. Try government direct server with independent fresh 4.5s timeout
+  try {
+    const ctrl2 = new AbortController();
+    const t2 = setTimeout(() => ctrl2.abort(), 4500);
+    const res2 = await fetch(backupUrl, {
+      signal: ctrl2.signal,
+      cache: 'no-store',
+      headers: { 'Accept': 'application/json' }
+    });
+    clearTimeout(t2);
+    if (res2.ok) {
+      const json2 = await res2.json();
+      if (json2 && json2.data) return json2;
+    }
+  } catch {}
+
+  return null;
+}
 
 export async function fetchWeatherForecast(upazilaCode: string, forceReload: boolean = false): Promise<ForecastResponseData> {
   const pcode = upazilaCode || '302602';
 
-  // Return cached result immediately if valid and not a forced reload
+  // Stale-While-Revalidate: Return cached result immediately if available
   if (!forceReload && memoryCache.has(pcode)) {
     const entry = memoryCache.get(pcode)!;
-    if (Date.now() - entry.cachedAt < CACHE_TTL_MS) {
-      return entry.data;
+    const isStale = Date.now() - entry.cachedAt >= CACHE_TTL_MS;
+    if (isStale && !activeRevalidations.has(pcode)) {
+      // Revalidate in background without blocking response
+      activeRevalidations.add(pcode);
+      fetchWeatherForecast(pcode, true)
+        .catch(err => console.warn(`Background revalidate failed for ${pcode}:`, err))
+        .finally(() => { activeRevalidations.delete(pcode); });
     }
+    return entry.data;
   }
 
-  // Fetch daily and 3-hourly steps in parallel with generous 15-second timeout
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  const primaryDailyUrl = `https://api.bdservers.site/upazila_forecast_recent?SOURCE=BMDWRF&uid=6ae028395e31a&PCODE=${pcode}`;
+  const backupDailyUrl = `${NLAS_BASE_URL}upazila_forecast_recent?SOURCE=BMDWRF&PCODE=${pcode}`;
 
-  let dailyRaw: any;
-  let hourlyRaw: any;
+  const primaryHourlyUrl = `https://api.bdservers.site/upazila_forecast_steps_recent?SOURCE=BMDWRF&uid=6ae028395e31d&PCODE=${pcode}`;
+  const backupHourlyUrl = `${NLAS_BASE_URL}upazila_forecast_steps_recent?SOURCE=BMDWRF&PCODE=${pcode}`;
+
+  let dailyRaw: any = null;
+  let hourlyRaw: any = null;
 
   try {
-    const [dailyRes, hourlyRes] = await Promise.all([
-      fetch(`${NLAS_BASE_URL}upazila_forecast_recent?SOURCE=BMDWRF&PCODE=${pcode}`, {
-        cache: 'no-store',
-        signal: controller.signal,
-        headers: { 'Accept': 'application/json' }
-      }),
-      fetch(`${NLAS_BASE_URL}upazila_forecast_steps_recent?SOURCE=BMDWRF&PCODE=${pcode}`, {
-        cache: 'no-store',
-        signal: controller.signal,
-        headers: { 'Accept': 'application/json' }
-      })
+    const results = await Promise.all([
+      fetchMeteorologicalJson(primaryDailyUrl, backupDailyUrl),
+      fetchMeteorologicalJson(primaryHourlyUrl, backupHourlyUrl)
     ]);
+    dailyRaw = results[0];
+    hourlyRaw = results[1];
 
-    clearTimeout(timeoutId);
-
-    if (!dailyRes.ok || !hourlyRes.ok) {
-      throw new Error(`Upstream server returned error: ${dailyRes.status} / ${hourlyRes.status}`);
+    if (!dailyRaw || !dailyRaw.data) {
+      throw new Error(`Upstream meteorological servers returned invalid response for ${pcode}`);
     }
-
-    dailyRaw = await dailyRes.json();
-    hourlyRaw = await hourlyRes.json();
   } catch (fetchErr) {
-    clearTimeout(timeoutId);
     console.warn(`Upstream fetch failed or timed out for ${pcode}, utilizing resilient fallback:`, fetchErr);
 
     // Fall back to stale cache if available
@@ -698,12 +751,47 @@ export const DEFAULT_UPAZILAS: Record<string, UpazilaItem[]> = {
     { label: 'Bangshal', value: '302605' },
     { label: 'Biman Bandar', value: '302606' },
     { label: 'Cantonment', value: '302608' },
-    { label: 'Chowkbazar', value: '302609' },
-    { label: 'Dhanmondi', value: '302614' },
-    { label: 'Gulshan', value: '302624' },
-    { label: 'Mirpur', value: '302640' },
-    { label: 'Mohammadpur', value: '302642' },
-    { label: 'Uttara', value: '302672' }
+    { label: 'Chak Bazar', value: '302609' },
+    { label: 'Dakshinkhan', value: '302610' },
+    { label: 'Darus Salam', value: '302611' },
+    { label: 'Demra', value: '302612' },
+    { label: 'Dhamrai', value: '302614' },
+    { label: 'Dhanmondi', value: '302616' },
+    { label: 'Dohar', value: '302618' },
+    { label: 'Gendaria', value: '302624' },
+    { label: 'Gulshan', value: '302626' },
+    { label: 'Hazaribagh', value: '302628' },
+    { label: 'Jatrabari', value: '302629' },
+    { label: 'Kadamtali', value: '302632' },
+    { label: 'Kafrul', value: '302630' },
+    { label: 'Kalabagan', value: '302633' },
+    { label: 'Kamrangir Char', value: '302634' },
+    { label: 'Keraniganj', value: '302638' },
+    { label: 'Khilgaon', value: '302636' },
+    { label: 'Khilkhet', value: '302637' },
+    { label: 'Kotwali', value: '302640' },
+    { label: 'Lalbagh', value: '302642' },
+    { label: 'Mirpur', value: '302648' },
+    { label: 'Mohammadpur', value: '302650' },
+    { label: 'Motijheel', value: '302654' },
+    { label: 'Nawabganj', value: '302662' },
+    { label: 'New Market', value: '302663' },
+    { label: 'Pallabi', value: '302664' },
+    { label: 'Paltan', value: '302665' },
+    { label: 'Ramna', value: '302666' },
+    { label: 'Rampura', value: '302667' },
+    { label: 'Sabujbagh', value: '302668' },
+    { label: 'Savar', value: '302672' },
+    { label: 'Shah Ali', value: '302674' },
+    { label: 'Shahbagh', value: '302675' },
+    { label: 'Sher-e-bangla Nagar', value: '302680' },
+    { label: 'Shyampur', value: '302676' },
+    { label: 'Sutrapur', value: '302688' },
+    { label: 'Tejgaon', value: '302690' },
+    { label: 'Tejgaon Ind. Area', value: '302692' },
+    { label: 'Turag', value: '302693' },
+    { label: 'Uttar Khan', value: '302696' },
+    { label: 'Uttara', value: '302695' }
   ],
   '1006': [
     { label: 'Agailjhara', value: '100602' },

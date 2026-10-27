@@ -5,6 +5,7 @@ import {
   BmdDistrictForecastResponseData,
   BmdUpazilaWeatherSummary
 } from '@/lib/bmd-district-forecast';
+import { toBengaliNumber } from '@/lib/bmd-client';
 import {
   MapPin,
   Search,
@@ -150,8 +151,8 @@ export default function BmdDistrictAllUpazilasView({
             </h2>
             <p style={{ fontSize: '13px', color: '#64748b', marginTop: '2px' }}>
               {lang === 'bn'
-                ? `BMDWRF মডেল ভিত্তিক রিয়েল-টাইম পর্যবেক্ষণ, ৫-৮ দিনের পূর্বাভাস এবং ৩-ঘণ্টার ব্যবধানের ডাটা।`
-                : `Real-time meteorological observations, 5-8 day forecasts, and 3-hourly telemetry across all upazilas in ${districtName}.`}
+                ? `BMDWRF মডেল ভিত্তিক রিয়েল-টাইম পর্যবেক্ষণ, ৭ দিনের পূর্বাভাস এবং ৩-ঘণ্টার ব্যবধানের ডাটা।`
+                : `Real-time meteorological observations, 7-day forecasts, and 3-hourly telemetry across all upazilas in ${districtName}.`}
             </p>
           </div>
 
@@ -879,15 +880,15 @@ export default function BmdDistrictAllUpazilasView({
 
                     <span style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>
                       {activeTab === 'daily'
-                        ? (lang === 'bn' ? `${u.daily.length} দিনের পূর্বাভাস` : `${u.daily.length} Days Outlook`)
+                        ? (lang === 'bn' ? `${toBengaliNumber(u.daily.length)} দিনের পূর্বাভাস` : `${u.daily.length} Days Outlook`)
                         : (lang === 'bn' ? 'পরবর্তী ২৪ ঘণ্টার ধাপ' : 'Next 24h Intervals')}
                     </span>
                   </div>
 
-                  {/* TAB 1: 5-8 DAY FORECAST LIST (APPLE WEATHER STYLE - SPACIOUS & CLEAN) */}
+                  {/* TAB 1: 7-DAY FORECAST LIST (APPLE WEATHER STYLE - SPACIOUS & CLEAN) */}
                   {activeTab === 'daily' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
-                      {u.daily.slice(0, 6).map((d, dIdx) => (
+                      {u.daily.slice(0, 7).map((d, dIdx) => (
                         <div
                           key={dIdx}
                           style={{

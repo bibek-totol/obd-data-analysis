@@ -115,7 +115,7 @@ export default function DistrictAllUpazilasView({
     return list;
   }, [districtData, searchTerm, sortBy]);
 
-  if (isLoading) {
+  if (isLoading && (!districtData || !districtData.upazilas || districtData.upazilas.length === 0)) {
     return (
       <div style={{
         padding: '70px 20px',

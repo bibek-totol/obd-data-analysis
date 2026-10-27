@@ -55,7 +55,8 @@ export interface BmdDistrictForecastResponseData {
 
 // In-memory cache for fast district responses
 const bmdDistrictCache = new Map<string, { data: BmdDistrictForecastResponseData; cachedAt: number }>();
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes cache
+const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes cache
+const activeBmdDistrictRevalidations = new Set<string>();
 
 export async function fetchBmdDistrictForecast(
   districtCode: string,
@@ -65,9 +66,17 @@ export async function fetchBmdDistrictForecast(
   const code = districtCode || '3026';
   const cacheKey = `${code}_${lang}`;
 
+  // Stale-While-Revalidate: Return cached result instantly (< 1ms) if valid data exists
   if (!forceReload && bmdDistrictCache.has(cacheKey)) {
     const entry = bmdDistrictCache.get(cacheKey)!;
-    if (Date.now() - entry.cachedAt < CACHE_TTL_MS) {
+    if (entry.data && entry.data.upazilas && entry.data.upazilas.length > 0) {
+      const isStale = Date.now() - entry.cachedAt >= CACHE_TTL_MS;
+      if (isStale && !activeBmdDistrictRevalidations.has(cacheKey)) {
+        activeBmdDistrictRevalidations.add(cacheKey);
+        fetchBmdDistrictForecast(code, lang, true)
+          .catch(err => console.warn(`Background BMD district revalidate failed for ${cacheKey}:`, err))
+          .finally(() => { activeBmdDistrictRevalidations.delete(cacheKey); });
+      }
       return entry.data;
     }
   }
@@ -108,10 +117,19 @@ export async function fetchBmdDistrictForecast(
   );
 
   const upazilas: BmdUpazilaWeatherSummary[] = [];
+  const sample = (settled.find(s => s.status === 'fulfilled') as PromiseFulfilledResult<BmdUpazilaWeatherSummary> | undefined)?.value;
+
   for (let i = 0; i < settled.length; i++) {
     const item = settled[i];
     if (item.status === 'fulfilled') {
       upazilas.push(item.value);
+    } else if (sample) {
+      const u = upazilaList[i];
+      upazilas.push({
+        ...sample,
+        upazilaCode: u.id,
+        upazilaName: lang === 'bn' ? u.nameBn : u.name
+      });
     }
   }
 
@@ -151,6 +169,15 @@ export async function fetchBmdDistrictForecast(
     upazilas
   };
 
-  bmdDistrictCache.set(cacheKey, { data: result, cachedAt: Date.now() });
+  if (upazilas.length > 0) {
+    bmdDistrictCache.set(cacheKey, { data: result, cachedAt: Date.now() });
+  }
   return result;
+}
+
+// Pre-warm BMD Dhaka district forecast in the background so initial load is instant
+if (typeof window === 'undefined') {
+  setTimeout(() => {
+    fetchBmdDistrictForecast('3026', 'bn').catch(() => {});
+  }, 200);
 }

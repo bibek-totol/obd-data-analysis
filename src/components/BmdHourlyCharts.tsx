@@ -52,11 +52,11 @@ export default function BmdHourlyCharts({
   const paddingLeft = 65;
   const paddingRight = 45;
   const paddingTop = 40;
-  const paddingBottom = 65;
+  const paddingBottom = 80;
   const plotWidth = svgWidth - paddingLeft - paddingRight;
 
   // Chart 1: Temperature & Icons Height
-  const tempChartHeight = 260;
+  const tempChartHeight = 285;
   const tempPlotHeight = tempChartHeight - paddingTop - paddingBottom;
 
   // Chart 2: Rainfall & Humidity Height
@@ -357,28 +357,32 @@ export default function BmdHourlyCharts({
                       <BmdWeatherIcon iconType={step.conditionIcon} size={28} />
                     </foreignObject>
 
-                    {/* Visual: X Axis Time and Date Label */}
-                    <text
-                      x={x}
-                      y={paddingTop + tempPlotHeight + 20}
-                      textAnchor="middle"
-                      fontSize="10"
-                      fill="#334155"
-                      fontWeight="600"
+                    {/* Visual: X Axis Time and Date Label (Angled at -45° to match Highcharts in usf.bmd.gov.bd) */}
+                    <g
+                      transform={`rotate(-45 ${x} ${paddingTop + tempPlotHeight + 15})`}
                       style={{ pointerEvents: 'none' }}
                     >
-                      {step.timeRange.split(' - ')[0]}
-                    </text>
-                    <text
-                      x={x}
-                      y={paddingTop + tempPlotHeight + 35}
-                      textAnchor="middle"
-                      fontSize="9"
-                      fill="#64748b"
-                      style={{ pointerEvents: 'none' }}
-                    >
-                      {step.dateLabel}
-                    </text>
+                      <text
+                        x={x}
+                        y={paddingTop + tempPlotHeight + 15}
+                        textAnchor="end"
+                        fontSize="9.5"
+                        fill="#0f172a"
+                        fontWeight="700"
+                      >
+                        {step.dateLabel}
+                      </text>
+                      <text
+                        x={x}
+                        y={paddingTop + tempPlotHeight + 27}
+                        textAnchor="end"
+                        fontSize="8.5"
+                        fill="#475569"
+                        fontWeight="600"
+                      >
+                        {step.timeRange}
+                      </text>
+                    </g>
 
                     {/* Seamless Full-Height Hit Column (Ensures 0 gap between steps & no flickering) */}
                     <rect

@@ -490,19 +490,30 @@ export const DEFAULT_BMD_UPAZILAS: Record<string, BmdUpazilaItem[]> = {
 // -------------------------------------------------------------
 // Upazilas Fetcher with HTML Parsing & Resilient Fallback
 // -------------------------------------------------------------
+const bmdUpazilasCache = new Map<string, BmdUpazilaItem[]>();
+
 export async function fetchBmdUpazilas(districtCode: string, lang: 'en' | 'bn' = 'bn'): Promise<BmdUpazilaItem[]> {
+  const cacheKey = `${districtCode}_${lang}`;
+  if (bmdUpazilasCache.has(cacheKey)) {
+    return bmdUpazilasCache.get(cacheKey)!;
+  }
   try {
     const url =
       lang === 'bn'
         ? `https://usf.bmd.gov.bd/Dashboard/getUpazilaBN?district=${districtCode}`
         : `https://usf.bmd.gov.bd/Dashboard/getUpazila?district=${districtCode}`;
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+
     const res = await fetch(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       },
+      signal: controller.signal,
       next: { revalidate: 3600 }
     });
+    clearTimeout(timeout);
 
     if (res.ok) {
       const html = await res.text();
@@ -517,13 +528,14 @@ export async function fetchBmdUpazilas(districtCode: string, lang: 'en' | 'bn' =
           results.push({
             id,
             districtId: districtCode,
-            name: lang === 'en' ? label : label,
-            nameBn: lang === 'bn' ? label : label
+            name: label,
+            nameBn: label
           });
         }
       }
 
       if (results.length > 0) {
+        bmdUpazilasCache.set(cacheKey, results);
         return results;
       }
     }
@@ -540,47 +552,83 @@ export async function fetchBmdUpazilas(districtCode: string, lang: 'en' | 'bn' =
 }
 
 // -------------------------------------------------------------
+// Resilient Meteorological Fetcher with Independent Fallback
+// -------------------------------------------------------------
+async function fetchMeteorologicalData(primaryUrl: string, backupUrl: string): Promise<any> {
+  // 1. Try primary (CDN) with 2.5s timeout
+  try {
+    const ctrl1 = new AbortController();
+    const t1 = setTimeout(() => ctrl1.abort(), 2500);
+    const res1 = await fetch(primaryUrl, {
+      signal: ctrl1.signal,
+      cache: 'no-store',
+      headers: { 'Accept': 'application/json' }
+    });
+    clearTimeout(t1);
+    if (res1.ok) {
+      const json1 = await res1.json();
+      if (json1 && json1.data) return json1;
+    }
+  } catch {}
+
+  // 2. Try backup (NLAS government server) with 4s timeout
+  try {
+    const ctrl2 = new AbortController();
+    const t2 = setTimeout(() => ctrl2.abort(), 4000);
+    const res2 = await fetch(backupUrl, {
+      signal: ctrl2.signal,
+      cache: 'no-store',
+      headers: { 'Accept': 'application/json' }
+    });
+    clearTimeout(t2);
+    if (res2.ok) {
+      const json2 = await res2.json();
+      if (json2 && json2.data) return json2;
+    }
+  } catch {}
+
+  return null;
+}
+
+// -------------------------------------------------------------
 // Real-time Forecast Fetcher
 // -------------------------------------------------------------
+const bmdForecastCache = new Map<string, { data: BmdForecastResponseData; cachedAt: number }>();
+const BMD_CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes cache
+const activeBmdRevalidations = new Set<string>();
+
 export async function fetchBmdForecastData(
   upazilaCode: string,
   lang: 'en' | 'bn' = 'bn',
   forceReload = false
 ): Promise<BmdForecastResponseData> {
   const pcode = upazilaCode || '302602';
-  const cacheOption = forceReload ? 'no-store' : 'default';
+  const cacheKey = `${pcode}_${lang}`;
 
-  // 1. Fetch Daily Forecast
-  const primaryDailyUrl = `https://api.bdservers.site/upazila_forecast_recent?SOURCE=BMDWRF&uid=6addc6335584a&PCODE=${pcode}`;
+  // Stale-While-Revalidate: Return cached result instantly if available
+  if (!forceReload && bmdForecastCache.has(cacheKey)) {
+    const entry = bmdForecastCache.get(cacheKey)!;
+    const isStale = Date.now() - entry.cachedAt >= BMD_CACHE_TTL_MS;
+    if (isStale && !activeBmdRevalidations.has(cacheKey)) {
+      activeBmdRevalidations.add(cacheKey);
+      fetchBmdForecastData(pcode, lang, true)
+        .catch(err => console.warn(`Background BMD forecast revalidation failed for ${cacheKey}:`, err))
+        .finally(() => { activeBmdRevalidations.delete(cacheKey); });
+    }
+    return entry.data;
+  }
+
+  // 1. Fetch Daily Forecast and 3-Hourly Steps concurrently with independent timeouts
+  const primaryDailyUrl = `https://api.bdservers.site/upazila_forecast_recent?SOURCE=BMDWRF&uid=6ae028395e31a&PCODE=${pcode}`;
   const backupDailyUrl = `https://nlas.dls.gov.bd/apinlas/upazila_forecast_recent?SOURCE=BMDWRF&PCODE=${pcode}`;
 
-  let dailyRaw: any = null;
-  try {
-    const res = await fetch(primaryDailyUrl, { cache: cacheOption as RequestCache });
-    if (res.ok) dailyRaw = await res.json();
-  } catch {
-    // backup
-  }
-  if (!dailyRaw || !dailyRaw.data) {
-    const resBackup = await fetch(backupDailyUrl, { cache: cacheOption as RequestCache });
-    if (resBackup.ok) dailyRaw = await resBackup.json();
-  }
-
-  // 2. Fetch 3-Hourly Steps
-  const primaryStepsUrl = `https://api.bdservers.site/upazila_forecast_steps_recent?SOURCE=BMDWRF&uid=6addc6335584d&PCODE=${pcode}`;
+  const primaryStepsUrl = `https://api.bdservers.site/upazila_forecast_steps_recent?SOURCE=BMDWRF&uid=6ae028395e31d&PCODE=${pcode}`;
   const backupStepsUrl = `https://nlas.dls.gov.bd/apinlas/upazila_forecast_steps_recent?SOURCE=BMDWRF&PCODE=${pcode}`;
 
-  let stepsRaw: any = null;
-  try {
-    const res = await fetch(primaryStepsUrl, { cache: cacheOption as RequestCache });
-    if (res.ok) stepsRaw = await res.json();
-  } catch {
-    // backup
-  }
-  if (!stepsRaw || !stepsRaw.data) {
-    const resBackup = await fetch(backupStepsUrl, { cache: cacheOption as RequestCache });
-    if (resBackup.ok) stepsRaw = await resBackup.json();
-  }
+  const [dailyRaw, stepsRaw] = await Promise.all([
+    fetchMeteorologicalData(primaryDailyUrl, backupDailyUrl),
+    fetchMeteorologicalData(primaryStepsUrl, backupStepsUrl)
+  ]);
 
   if (!dailyRaw || !dailyRaw.data) {
     throw new Error('Failed to retrieve BMDWRF forecast data from meteorological servers.');
@@ -626,11 +674,12 @@ export async function fetchBmdForecastData(
 
   const currentYear = parseInt(partMap.year || '2026', 10);
   const currentMonth = parseInt(partMap.month || '10', 10);
-  const currentDay = parseInt(partMap.day || '26', 10);
+  const currentDay = parseInt(partMap.day || '27', 10);
   const currentHour = parseInt(partMap.hour || '12', 10);
+  const dhakaDateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}`;
 
   // -------------------------------------------------------------
-  // Parse Daily Data (7-8 days sliding window)
+  // Parse Daily Data (7 Days Sliding Window matching usf.bmd.gov.bd)
   // -------------------------------------------------------------
   const tempArr: any[] = forecastDailyData.temp || [];
   const rfArr: any[] = forecastDailyData.rf || [];
@@ -641,7 +690,7 @@ export async function fetchBmdForecastData(
 
   const dailyItems: BmdDailyForecastItem[] = [];
 
-  for (let i = 0; i < tempArr.length; i++) {
+  for (let i = 0; i < tempArr.length && dailyItems.length < 7; i++) {
     const tItem = tempArr[i];
     const rfItem = rfArr[i] || {};
     const rhItem = rhArr[i] || {};
@@ -650,28 +699,37 @@ export async function fetchBmdForecastData(
     const cldItem = cldcvrArr[i] || {};
 
     const stepStart = tItem.step_start || '';
+    const itemDateStr = stepStart.substring(0, 10);
+    // Filter out historical dates prior to current date in Asia/Dhaka
+    if (itemDateStr < dhakaDateStr) {
+      continue;
+    }
+
     const itemYear = parseInt(stepStart.substring(0, 4) || String(currentYear), 10);
     const itemMonth = parseInt(stepStart.substring(5, 7) || String(currentMonth), 10);
-    const itemDay = parseInt(stepStart.substring(8, 10) || String(currentDay + i), 10);
+    const itemDay = parseInt(stepStart.substring(8, 10) || String(currentDay), 10);
 
     const dateObj = new Date(Date.UTC(itemYear, itemMonth - 1, itemDay));
     const dayOfWeek = dateObj.getUTCDay();
 
-    const tempMax = Math.round(Number(tItem.val_max ?? 30));
-    const tempMin = Math.round(Number(tItem.val_min ?? 22));
+    // Matching dashboard_bn.js: parseInt for max/min temp, max wind, and avg rh
+    const tempMax = parseInt(String(tItem.val_max ?? 30), 10);
+    const tempMin = parseInt(String(tItem.val_min ?? 22), 10);
 
     const rainMin = Math.round(Number(rfItem.val_min ?? 0));
     const rainMax = Math.round(Number(rfItem.val_max ?? 0));
     const rainAvg = Math.round(Number(rfItem.val_avg ?? 0));
 
-    const windAvg = Math.round(Number(wspdItem.val_avg ?? 10));
-    const windDirMax = Math.round(Number(wdirItem.val_max ?? wdirItem.val_avg ?? 120));
+    const windMax = parseInt(String(wspdItem.val_max ?? 10), 10);
+    const windAvg = parseInt(String(wspdItem.val_avg ?? 10), 10);
+    const windDirMax = parseInt(String(wdirItem.val_max ?? wdirItem.val_avg ?? 120), 10);
 
-    const rhAvg = Math.round(Number(rhItem.val_avg ?? 65));
-    const cldDay = Number(cldItem.val_avg_day ?? cldItem.val_avg ?? 3);
+    const rhAvg = parseInt(String(rhItem.val_avg ?? 65), 10);
+    const cldDay = parseFloat(Number(cldItem.val_avg_day ?? cldItem.val_avg ?? 3).toFixed(2));
+    const cldNight = parseFloat(Number(cldItem.val_avg_night ?? cldItem.val_avg ?? 3).toFixed(2));
 
     const condition = resolveBmdWeatherCondition(cldDay, rainMax, 12, lang);
-    const nightCondition = resolveBmdWeatherCondition(cldDay, rainMax, 22, lang);
+    const nightCondition = resolveBmdWeatherCondition(cldNight, rainMax, 22, lang);
 
     // Formatting
     const dateWeekStr = getWeekName(dayOfWeek, lang);
@@ -693,10 +751,11 @@ export async function fetchBmdForecastData(
     }
 
     const windDirText = getWindDirectionLabel(windDirMax, lang);
+    // In dashboard_bn.js line 640, wind_max is used for the wind label
     const windFormattedStr =
       lang === 'bn'
-        ? `${windDirText} ${toBengaliNumber(windAvg)} কিমি/ঘঃ`
-        : `${windDirText} ${windAvg} km/h`;
+        ? `${windDirText} ${toBengaliNumber(windMax)} কিমি/ঘঃ`
+        : `${windDirText} ${windMax} km/h`;
 
     const tempFormattedStr =
       lang === 'bn'
@@ -707,7 +766,7 @@ export async function fetchBmdForecastData(
       lang === 'bn' ? `${toBengaliNumber(rhAvg)}%` : `${rhAvg}%`;
 
     dailyItems.push({
-      dayIndex: i + 1,
+      dayIndex: dailyItems.length + 1,
       dateWeek: dateWeekStr,
       dateFormatted: dateFormattedStr,
       rawDate: `${itemYear}-${String(itemMonth).padStart(2, '0')}-${String(itemDay).padStart(2, '0')}`,
@@ -721,7 +780,7 @@ export async function fetchBmdForecastData(
       rainMax,
       rainAvg,
       rainFormatted: rainFormattedStr,
-      windAvg,
+      windAvg: windMax,
       windDirectionDeg: windDirMax,
       windDirectionText: windDirText,
       windFormatted: windFormattedStr,
@@ -731,7 +790,7 @@ export async function fetchBmdForecastData(
   }
 
   // -------------------------------------------------------------
-  // Parse 3-Hourly Steps Data (Next 3 Days / Up to 24 steps)
+  // Parse 3-Hourly Steps Data (Next 3 Days / Up to 24 steps starting from current interval)
   // -------------------------------------------------------------
   const stepsTemp: any[] = forecastStepsData.temp || [];
   const stepsRf: any[] = forecastStepsData.rf || [];
@@ -743,6 +802,7 @@ export async function fetchBmdForecastData(
   const hourlySteps: BmdHourlyForecastStep[] = [];
   let currentStepMatch: any = null;
 
+  // Find the current interval in Asia/Dhaka time
   for (let i = 0; i < stepsTemp.length; i++) {
     const t = stepsTemp[i];
     const rf = stepsRf[i] || {};
@@ -762,66 +822,124 @@ export async function fetchBmdForecastData(
     let eHour = parseInt(stepEnd.substring(14, 16) || String(sHour + 3), 10);
     if (eHour === 0) eHour = 24;
 
-    const tempVal = Number(t.val_avg ?? t.val_max ?? 28);
-    const rainVal = Math.round(Number(rf.val_avg ?? rf.val_max ?? 0));
-    const rhVal = Math.round(Number(rh.val_avg ?? 65));
-    const windVal = Math.round(Number(wspd.val_avg ?? 12));
-    const windDirVal = Math.round(Number(wdir.val_avg ?? 120));
-    const cldVal = Number(cld.val_avg ?? 3);
+    const isCurrentStep = (sDay === currentDay && sMonth === currentMonth && currentHour >= sHour && currentHour <= eHour);
 
-    // Check if this step is current interval in Asia/Dhaka time
-    if (sDay === currentDay && sMonth === currentMonth && currentHour >= sHour && currentHour < eHour) {
+    if (isCurrentStep && !currentStepMatch) {
       currentStepMatch = {
-        temp: tempVal,
-        rain: rainVal,
-        rh: rhVal,
-        wind: windVal,
-        windDir: windDirVal,
-        cld: cldVal,
+        temp: parseFloat(Number(t.val_avg ?? t.val_max ?? 28).toFixed(1)),
+        rain: Math.round(Number(rf.val_max ?? rf.val_avg ?? 0)),
+        rh: parseInt(String(rh.val_avg ?? 65), 10),
+        wind: parseInt(String(wspd.val_avg ?? 12), 10),
+        windDir: parseInt(String(wdir.val_avg ?? 120), 10),
+        cld: parseFloat(Number(cld.val_avg ?? 3).toFixed(2)),
         hour: sHour,
         day: sDay,
         month: sMonth,
-        year: sYear
+        year: sYear,
+        stepIndex: i
       };
+      break;
     }
+  }
 
-    // Include step in next 24 intervals (3 days)
-    if (hourlySteps.length < 24) {
-      const condition = resolveBmdWeatherCondition(cldVal, rainVal, sHour, lang);
-      const windDirText = getWindDirectionLabel(windDirVal, lang);
+  // Fallback: if exact hour match wasn't found, find the earliest step matching or after current date
+  if (!currentStepMatch) {
+    for (let i = 0; i < stepsTemp.length; i++) {
+      const t = stepsTemp[i];
+      const rf = stepsRf[i] || {};
+      const rh = stepsRh[i] || {};
+      const wspd = stepsWindspd[i] || {};
+      const wdir = stepsWinddir[i] || {};
+      const cld = stepsCldcvr[i] || {};
 
-      const sHourFormatted = String(sHour % 24).padStart(2, '0') + ':00';
-      const eHourFormatted = String(eHour % 24).padStart(2, '0') + ':00';
-      const timeRangeStr =
-        lang === 'bn'
-          ? `${toBengaliNumber(sHourFormatted)} - ${toBengaliNumber(eHourFormatted)}`
-          : `${sHourFormatted} - ${eHourFormatted}`;
+      const stepStart = t.step_start || '';
+      const sDay = parseInt(stepStart.substring(8, 10) || String(currentDay), 10);
+      const sMonth = parseInt(stepStart.substring(5, 7) || String(currentMonth), 10);
+      const sYear = parseInt(stepStart.substring(0, 4) || String(currentYear), 10);
+      const sHour = parseInt(stepStart.substring(14, 16) || '0', 10);
 
-      const dateLabelStr =
-        lang === 'bn'
-          ? `${toBengaliNumber(sDay)} ${getMonthName(sMonth - 1, 'bn')}`
-          : `${sDay} ${getMonthName(sMonth - 1, 'en')}`;
-
-      hourlySteps.push({
-        stepIndex: hourlySteps.length + 1,
-        stepStart,
-        stepEnd,
-        dateLabel: dateLabelStr,
-        timeRange: timeRangeStr,
-        temp: Math.round(tempVal * 10) / 10,
-        tempFormatted: lang === 'bn' ? `${toBengaliNumber((Math.round(tempVal * 10) / 10).toFixed(1))}°সেঃ` : `${tempVal.toFixed(1)}°C`,
-        rain: rainVal,
-        rainFormatted: lang === 'bn' ? `${toBengaliNumber(rainVal)} মিঃমিঃ` : `${rainVal} mm`,
-        humidity: rhVal,
-        humidityFormatted: lang === 'bn' ? `${toBengaliNumber(rhVal)}%` : `${rhVal}%`,
-        windSpeed: windVal,
-        windSpeedFormatted: lang === 'bn' ? `${toBengaliNumber(windVal)} কিমি/ঘঃ` : `${windVal} km/h`,
-        windDirectionDeg: windDirVal,
-        windDirectionText: windDirText,
-        conditionIcon: condition.iconType,
-        conditionText: condition.conditionText
-      });
+      const itemDateStr = stepStart.substring(0, 10);
+      if (itemDateStr >= dhakaDateStr) {
+        currentStepMatch = {
+          temp: parseFloat(Number(t.val_avg ?? t.val_max ?? 28).toFixed(1)),
+          rain: Math.round(Number(rf.val_max ?? rf.val_avg ?? 0)),
+          rh: parseInt(String(rh.val_avg ?? 65), 10),
+          wind: parseInt(String(wspd.val_avg ?? 12), 10),
+          windDir: parseInt(String(wdir.val_avg ?? 120), 10),
+          cld: parseFloat(Number(cld.val_avg ?? 3).toFixed(2)),
+          hour: sHour,
+          day: sDay,
+          month: sMonth,
+          year: sYear,
+          stepIndex: i
+        };
+        break;
+      }
     }
+  }
+
+  // Collect up to 24 steps (next 3 days) starting from current step forward
+  const startStepIdx = currentStepMatch?.stepIndex ?? 0;
+  for (let i = startStepIdx; i < stepsTemp.length && hourlySteps.length < 24; i++) {
+    const t = stepsTemp[i];
+    const rf = stepsRf[i] || {};
+    const rh = stepsRh[i] || {};
+    const wspd = stepsWindspd[i] || {};
+    const wdir = stepsWinddir[i] || {};
+    const cld = stepsCldcvr[i] || {};
+
+    const stepStart = t.step_start || '';
+    const stepEnd = t.step_end || '';
+
+    const sYear = parseInt(stepStart.substring(0, 4) || String(currentYear), 10);
+    const sMonth = parseInt(stepStart.substring(5, 7) || String(currentMonth), 10);
+    const sDay = parseInt(stepStart.substring(8, 10) || String(currentDay), 10);
+    const sHour = parseInt(stepStart.substring(14, 16) || '0', 10);
+
+    let eHour = parseInt(stepEnd.substring(14, 16) || String(sHour + 3), 10);
+    if (eHour === 0) eHour = 24;
+
+    const tempVal = parseFloat(Number(t.val_avg ?? t.val_max ?? 28).toFixed(1));
+    const rainVal = Math.round(Number(rf.val_max ?? rf.val_avg ?? 0));
+    const rhVal = parseInt(String(rh.val_avg ?? 65), 10);
+    const windVal = parseInt(String(wspd.val_avg ?? 12), 10);
+    const windDirVal = parseInt(String(wdir.val_avg ?? 120), 10);
+    const cldVal = parseFloat(Number(cld.val_avg ?? 3).toFixed(2));
+
+    const condition = resolveBmdWeatherCondition(cldVal, rainVal, sHour, lang);
+    const windDirText = getWindDirectionLabel(windDirVal, lang);
+
+    const sHourFormatted = String(sHour % 24).padStart(2, '0') + ':00';
+    const eHourFormatted = String(eHour % 24).padStart(2, '0') + ':00';
+    const timeRangeStr =
+      lang === 'bn'
+        ? `${toBengaliNumber(sHourFormatted)} - ${toBengaliNumber(eHourFormatted)}`
+        : `${sHourFormatted} - ${eHourFormatted}`;
+
+    const dateLabelStr =
+      lang === 'bn'
+        ? `${toBengaliNumber(sDay)} ${getMonthName(sMonth - 1, 'bn')}`
+        : `${sDay} ${getMonthName(sMonth - 1, 'en')}`;
+
+    hourlySteps.push({
+      stepIndex: hourlySteps.length + 1,
+      stepStart,
+      stepEnd,
+      dateLabel: dateLabelStr,
+      timeRange: timeRangeStr,
+      temp: tempVal,
+      tempFormatted: lang === 'bn' ? `${toBengaliNumber(tempVal.toFixed(1))}°সেঃ` : `${tempVal.toFixed(1)}°C`,
+      rain: rainVal,
+      rainFormatted: lang === 'bn' ? `${toBengaliNumber(rainVal)} মিঃমিঃ` : `${rainVal} mm`,
+      humidity: rhVal,
+      humidityFormatted: lang === 'bn' ? `${toBengaliNumber(rhVal)}%` : `${rhVal}%`,
+      windSpeed: windVal,
+      windSpeedFormatted: lang === 'bn' ? `${toBengaliNumber(windVal)} কিমি/ঘঃ` : `${windVal} km/h`,
+      windDirectionDeg: windDirVal,
+      windDirectionText: windDirText,
+      conditionIcon: condition.iconType,
+      conditionText: condition.conditionText
+    });
   }
 
   // -------------------------------------------------------------
@@ -834,7 +952,7 @@ export async function fetchBmdForecastData(
   const heroWindDir = currentStepMatch ? currentStepMatch.windDir : (dailyItems[0]?.windDirectionDeg || 120);
   const heroCld = currentStepMatch ? currentStepMatch.cld : 2.5;
 
-  const realFeelC = calculateRealFeelC(heroTemp, heroRh);
+  const realFeelC = Math.round(calculateRealFeelC(heroTemp, heroRh));
   const heroCondition = resolveBmdWeatherCondition(heroCld, heroRain, currentHour, lang);
   const heroWindDirText = getWindDirectionLabel(heroWindDir, lang);
 
@@ -860,16 +978,16 @@ export async function fetchBmdForecastData(
     locationTitle: heroLocationTitle,
     conditionIcon: heroCondition.iconType,
     conditionText: heroCondition.conditionText,
-    temp: Math.round(heroTemp * 10) / 10,
+    temp: heroTemp,
     tempFormatted:
       lang === 'bn'
-        ? `${toBengaliNumber((Math.round(heroTemp * 10) / 10).toFixed(1))}°সেঃ`
+        ? `${toBengaliNumber(heroTemp.toFixed(1))}°সেঃ`
         : `${heroTemp.toFixed(1)}°C`,
     realFeel: realFeelC,
     realFeelFormatted:
       lang === 'bn'
-        ? `অনুভূত তাপমাত্রা : ${toBengaliNumber(realFeelC.toFixed(1))}°সেঃ`
-        : `Real Feel: ${realFeelC.toFixed(1)}°C`,
+        ? `অনুভূত তাপমাত্রা : ${toBengaliNumber(realFeelC)}°সেঃ`
+        : `Real Feel: ${realFeelC}°C`,
     humidity: heroRh,
     humidityFormatted: lang === 'bn' ? `${toBengaliNumber(heroRh)}%` : `${heroRh}%`,
     windSpeed: heroWind,
@@ -883,7 +1001,7 @@ export async function fetchBmdForecastData(
     dataSourceTime: formattedDataSourceTime
   };
 
-  return {
+  const result: BmdForecastResponseData = {
     upazilaCode: pcode,
     upazilaName: displayUpazila,
     districtName: displayDistrict,
@@ -894,4 +1012,7 @@ export async function fetchBmdForecastData(
     daily: dailyItems,
     hourly: hourlySteps
   };
+
+  bmdForecastCache.set(cacheKey, { data: result, cachedAt: Date.now() });
+  return result;
 }

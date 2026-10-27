@@ -94,9 +94,50 @@ export default function HomePage() {
   // Client-side cache for instantaneous switching between upazilas
   const clientCacheRef = React.useRef<Record<string, ForecastResponseData>>({});
 
+  const districtDataRef = React.useRef<DistrictForecastResponseData | null>(null);
+
+  // Restore cached district forecast from sessionStorage immediately on mount for 0ms render
+  useEffect(() => {
+    try {
+      const cached = sessionStorage.getItem(`nlas_district_${selectedDistrict}`);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && parsed.upazilas && parsed.upazilas.length > 0) {
+          districtDataRef.current = parsed;
+          setDistrictForecastData(parsed);
+          setIsLoadingDistrict(false);
+          const list = parsed.upazilas.map((u: any) => ({ label: u.upazilaName, value: u.upazilaCode }));
+          setUpazilas(list);
+        }
+      }
+    } catch {}
+  }, [selectedDistrict]);
+
+  // Initial upazilas lookup to ensure all stations are populated immediately (only for NLAS forecast section)
+  useEffect(() => {
+    if (activeSection !== 'forecast') return;
+    async function initUpazilas() {
+      try {
+        const res = await fetch(`/api/nlas/upazilas?districtCode=${selectedDistrict}`);
+        const json = await res.json();
+        if (json.success && json.upazilas?.length > 0) {
+          setUpazilas(json.upazilas);
+        } else if (DEFAULT_UPAZILAS[selectedDistrict]) {
+          setUpazilas(DEFAULT_UPAZILAS[selectedDistrict]);
+        }
+      } catch {
+        if (DEFAULT_UPAZILAS[selectedDistrict]) {
+          setUpazilas(DEFAULT_UPAZILAS[selectedDistrict]);
+        }
+      }
+    }
+    initUpazilas();
+  }, [selectedDistrict, activeSection]);
+
   // Fetch District-Wide Weather Data for All Upazilas
   const loadDistrictForecast = useCallback(async (districtCode: string, isManualRefresh = false) => {
-    setIsLoadingDistrict(true);
+    // Only block screen if we don't already have data in memory
+    setIsLoadingDistrict(!districtDataRef.current);
     try {
       const url = isManualRefresh
         ? `/api/nlas/district-forecast?districtCode=${districtCode}&reload=true&t=${Date.now()}`
@@ -109,9 +150,17 @@ export default function HomePage() {
       }
       const json = await res.json();
       if (json.success && json.data) {
+        districtDataRef.current = json.data;
         setDistrictForecastData(json.data);
+        if (json.data.upazilas && json.data.upazilas.length > 0) {
+          const list = json.data.upazilas.map((u: any) => ({ label: u.upazilaName, value: u.upazilaCode }));
+          setUpazilas(list);
+        }
         const now = new Date();
         setDistrictReloadTime(now.toLocaleTimeString());
+        try {
+          sessionStorage.setItem(`nlas_district_${districtCode}`, JSON.stringify(json.data));
+        } catch {}
       }
     } catch (err) {
       console.error('District forecast fetch error:', err);
@@ -120,18 +169,34 @@ export default function HomePage() {
     }
   }, []);
 
-  // Initial District Load
+  // Initial District Load - only runs when in forecast section and district changes
   useEffect(() => {
-    loadDistrictForecast(selectedDistrict);
-  }, [loadDistrictForecast, selectedDistrict]);
+    if (activeSection === 'forecast') {
+      loadDistrictForecast(selectedDistrict);
+    }
+  }, [loadDistrictForecast, selectedDistrict, activeSection]);
 
   // Fetch Single Upazila Forecast Data
   const loadForecast = useCallback(async (upazilaCode: string, isManualRefresh = false) => {
-    // If not manual refresh and already in client cache, paint immediately!
-    if (!isManualRefresh && clientCacheRef.current[upazilaCode]) {
-      setForecastData(clientCacheRef.current[upazilaCode]);
-      setIsLoadingForecast(false);
-      return;
+    // If not manual refresh and already in client cache or sessionStorage, paint immediately!
+    if (!isManualRefresh) {
+      if (clientCacheRef.current[upazilaCode]) {
+        setForecastData(clientCacheRef.current[upazilaCode]);
+        setIsLoadingForecast(false);
+        return;
+      }
+      try {
+        const cached = sessionStorage.getItem(`nlas_forecast_${upazilaCode}`);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && parsed.daily) {
+            clientCacheRef.current[upazilaCode] = parsed;
+            setForecastData(parsed);
+            setIsLoadingForecast(false);
+            return;
+          }
+        }
+      } catch {}
     }
 
     setIsLoadingForecast(true);
@@ -156,6 +221,9 @@ export default function HomePage() {
 
       clientCacheRef.current[upazilaCode] = json.data;
       setForecastData(json.data);
+      try {
+        sessionStorage.setItem(`nlas_forecast_${upazilaCode}`, JSON.stringify(json.data));
+      } catch {}
       const now = new Date();
       setLastReloadTime(now.toLocaleTimeString());
     } catch (err) {
@@ -173,10 +241,12 @@ export default function HomePage() {
     }
   }, []);
 
-  // Initial Forecast Load
+  // Initial Forecast Load: only load if in single view
   useEffect(() => {
-    loadForecast(selectedUpazila);
-  }, [loadForecast, selectedUpazila]);
+    if (viewMode === 'single') {
+      loadForecast(selectedUpazila);
+    }
+  }, [loadForecast, selectedUpazila, viewMode]);
 
   // Handle District Change
   const handleDistrictChange = async (districtCode: string) => {
@@ -193,13 +263,17 @@ export default function HomePage() {
         setUpazilas(json.upazilas);
         const firstUpazila = json.upazilas[0].value;
         setSelectedUpazila(firstUpazila);
-        loadForecast(firstUpazila);
+        if (viewMode === 'single') {
+          loadForecast(firstUpazila);
+        }
       } else {
         const fallback = DEFAULT_UPAZILAS[districtCode] || [];
         setUpazilas(fallback);
         if (fallback.length > 0) {
           setSelectedUpazila(fallback[0].value);
-          loadForecast(fallback[0].value);
+          if (viewMode === 'single') {
+            loadForecast(fallback[0].value);
+          }
         }
       }
     } catch (err) {
@@ -208,7 +282,9 @@ export default function HomePage() {
       setUpazilas(fallback);
       if (fallback.length > 0) {
         setSelectedUpazila(fallback[0].value);
-        loadForecast(fallback[0].value);
+        if (viewMode === 'single') {
+          loadForecast(fallback[0].value);
+        }
       }
     } finally {
       setIsLoadingUpazilas(false);
@@ -498,7 +574,7 @@ export default function HomePage() {
                         <div style={{ fontSize: '20px', fontWeight: 800, color: '#ffffff' }}>
                           {districtLabel} District
                           <span style={{ fontSize: '13px', fontWeight: 500, color: '#cbd5e1', marginLeft: '10px' }}>
-                            ({upazilas.length} Upazilas Monitored)
+                            ({(viewMode === 'all' && districtForecastData?.totalUpazilas) ? districtForecastData.totalUpazilas : upazilas.length} Upazilas Monitored)
                           </span>
                         </div>
                       </div>

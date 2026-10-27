@@ -54,7 +54,8 @@ export interface DistrictForecastResponseData {
 
 // In-memory cache for fast district responses
 const districtCache = new Map<string, { data: DistrictForecastResponseData; cachedAt: number }>();
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes cache
+const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes cache
+const activeDistrictRevalidations = new Set<string>();
 
 export async function fetchDistrictWeatherForecast(
   districtCode: string,
@@ -62,9 +63,17 @@ export async function fetchDistrictWeatherForecast(
 ): Promise<DistrictForecastResponseData> {
   const code = districtCode || '3026';
 
+  // Stale-While-Revalidate: Return cached result instantly (< 1ms) if valid data exists
   if (!forceReload && districtCache.has(code)) {
     const entry = districtCache.get(code)!;
-    if (Date.now() - entry.cachedAt < CACHE_TTL_MS) {
+    if (entry.data && entry.data.upazilas && entry.data.upazilas.length > 0) {
+      const isStale = Date.now() - entry.cachedAt >= CACHE_TTL_MS;
+      if (isStale && !activeDistrictRevalidations.has(code)) {
+        activeDistrictRevalidations.add(code);
+        fetchDistrictWeatherForecast(code, true)
+          .catch(err => console.warn(`Background district revalidation failed for ${code}:`, err))
+          .finally(() => { activeDistrictRevalidations.delete(code); });
+      }
       return entry.data;
     }
   }
@@ -156,6 +165,15 @@ export async function fetchDistrictWeatherForecast(
     upazilas
   };
 
-  districtCache.set(code, { data: result, cachedAt: Date.now() });
+  if (upazilas.length > 0) {
+    districtCache.set(code, { data: result, cachedAt: Date.now() });
+  }
   return result;
+}
+
+// Pre-warm Dhaka district forecast in the background so the initial user request is instant
+if (typeof window === 'undefined') {
+  setTimeout(() => {
+    fetchDistrictWeatherForecast('3026').catch(() => {});
+  }, 100);
 }
