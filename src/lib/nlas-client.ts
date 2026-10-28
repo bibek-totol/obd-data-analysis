@@ -276,7 +276,7 @@ async function fetchMeteorologicalJson(primaryUrl: string, backupUrl: string): P
   // 1. Try primary CDN with 3.5s timeout
   try {
     const ctrl1 = new AbortController();
-    const t1 = setTimeout(() => ctrl1.abort(), 3500);
+    const t1 = setTimeout(() => ctrl1.abort(), 2000);
     const res1 = await fetch(primaryUrl, {
       signal: ctrl1.signal,
       cache: 'no-store',
@@ -292,7 +292,7 @@ async function fetchMeteorologicalJson(primaryUrl: string, backupUrl: string): P
   // 2. Try government direct server with independent fresh 4.5s timeout
   try {
     const ctrl2 = new AbortController();
-    const t2 = setTimeout(() => ctrl2.abort(), 4500);
+    const t2 = setTimeout(() => ctrl2.abort(), 2500);
     const res2 = await fetch(backupUrl, {
       signal: ctrl2.signal,
       cache: 'no-store',
@@ -341,29 +341,19 @@ export async function fetchWeatherForecast(upazilaCode: string, forceReload: boo
     ]);
     dailyRaw = results[0];
     hourlyRaw = results[1];
+  } catch {
+    dailyRaw = null;
+    hourlyRaw = null;
+  }
 
-    if (!dailyRaw || !dailyRaw.data) {
-      throw new Error(`Upstream meteorological servers returned invalid response for ${pcode}`);
-    }
-  } catch (fetchErr) {
-    console.warn(`Upstream fetch failed or timed out for ${pcode}, utilizing resilient fallback:`, fetchErr);
+  const upazilaDaily = dailyRaw?.data?.[pcode];
+  const upazilaHourly = hourlyRaw?.data?.[pcode];
 
-    // Fall back to stale cache if available
+  // If station is not modeled upstream (e.g. newer metropolitan police stations) or upstream is down
+  if (!upazilaDaily) {
     if (memoryCache.has(pcode)) {
       return memoryCache.get(pcode)!.data;
     }
-
-    // Zero-fail: Return synthesized fallback forecast so the user never sees a 500 error!
-    const fallback = generateFallbackForecast(pcode);
-    memoryCache.set(pcode, { data: fallback, cachedAt: Date.now() });
-    return fallback;
-  }
-
-  const upazilaDaily = dailyRaw.data?.[pcode];
-  const upazilaHourly = hourlyRaw.data?.[pcode];
-
-  if (!upazilaDaily) {
-    console.warn(`No forecast data found in upstream response for code ${pcode}, using fallback`);
     const fallback = generateFallbackForecast(pcode);
     memoryCache.set(pcode, { data: fallback, cachedAt: Date.now() });
     return fallback;

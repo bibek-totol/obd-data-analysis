@@ -87,28 +87,35 @@ export async function fetchDistrictWeatherForecast(
   const districtItem = DEFAULT_DISTRICTS.find(d => d.value === code);
   const districtName = districtItem?.label || 'Dhaka';
 
-  // 2. Fetch forecast for all upazilas in parallel
-  const settled = await Promise.allSettled(
-    upazilaList.map(async (u) => {
-      const forecast = await fetchWeatherForecast(u.value, forceReload);
-      const rainToday = forecast.daily[0]?.rf || 0;
-      return {
-        upazilaCode: u.value,
-        upazilaName: u.label,
-        districtCode: code,
-        districtName: forecast.location.district_name || districtName,
-        divisionName: forecast.location.division_name || 'Bangladesh',
-        updatedAt: forecast.updated_at,
-        source: forecast.source || 'BMDWRF',
-        current: forecast.current,
-        daily: forecast.daily,
-        hourly: forecast.hourly,
-        rainToday,
-        maxTempToday: forecast.current.temp_max,
-        minTempToday: forecast.current.temp_min
-      } as UpazilaWeatherSummary;
-    })
-  );
+  // 2. Fetch forecast for all upazilas in controlled concurrent chunks
+  const BATCH_SIZE = 10;
+  const settled: PromiseSettledResult<UpazilaWeatherSummary>[] = [];
+
+  for (let i = 0; i < upazilaList.length; i += BATCH_SIZE) {
+    const chunk = upazilaList.slice(i, i + BATCH_SIZE);
+    const chunkResults = await Promise.allSettled(
+      chunk.map(async (u) => {
+        const forecast = await fetchWeatherForecast(u.value, forceReload);
+        const rainToday = forecast.daily[0]?.rf || 0;
+        return {
+          upazilaCode: u.value,
+          upazilaName: u.label,
+          districtCode: code,
+          districtName: forecast.location.district_name || districtName,
+          divisionName: forecast.location.division_name || 'Bangladesh',
+          updatedAt: forecast.updated_at,
+          source: forecast.source || 'BMDWRF',
+          current: forecast.current,
+          daily: forecast.daily,
+          hourly: forecast.hourly,
+          rainToday,
+          maxTempToday: forecast.current.temp_max,
+          minTempToday: forecast.current.temp_min
+        } as UpazilaWeatherSummary;
+      })
+    );
+    settled.push(...chunkResults);
+  }
 
   const upazilas: UpazilaWeatherSummary[] = [];
   for (let i = 0; i < settled.length; i++) {

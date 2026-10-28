@@ -110,7 +110,7 @@ export async function fetchRegionalAdvisory(
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 7000);
+    const timeout = setTimeout(() => controller.abort(), 3500);
 
     const res = await fetch(url, {
       cache: 'no-store',
