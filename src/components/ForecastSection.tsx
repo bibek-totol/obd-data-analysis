@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import LocationSelector from '@/components/LocationSelector';
 import HeroWeatherCard from '@/components/HeroWeatherCard';
 import DailyForecastGrid from '@/components/DailyForecastGrid';
@@ -17,17 +19,39 @@ import {
 import { AlertCircle, RefreshCw, CheckCircle2, Printer, MapPin, LayoutGrid } from 'lucide-react';
 import { useDashboard } from '@/context/DashboardContext';
 
-export default function ForecastSection() {
+interface ForecastSectionProps {
+  initialUpazilaCode?: string;
+  forceSingleView?: boolean;
+}
+
+export default function ForecastSection({
+  initialUpazilaCode,
+  forceSingleView = false
+}: ForecastSectionProps = {}) {
+  const router = useRouter();
   const { registerReload, setIsLoading, setLastUpdated } = useDashboard();
 
   // View Mode: 'all' displays all upazilas of selected district in one page; 'single' displays single upazila deep charts
-  const [viewMode, setViewMode] = useState<'single' | 'all'>('all');
+  const [viewMode, setViewMode] = useState<'single' | 'all'>(forceSingleView ? 'single' : 'all');
 
   // Location & Data States
   const [districts, setDistricts] = useState<DistrictItem[]>(DEFAULT_DISTRICTS);
-  const [upazilas, setUpazilas] = useState<UpazilaItem[]>(DEFAULT_UPAZILAS['3026'] || []);
-  const [selectedDistrict, setSelectedDistrict] = useState<string>('3026'); // Dhaka
-  const [selectedUpazila, setSelectedUpazila] = useState<string>('302602'); // Adabor
+  const initDistrict = initialUpazilaCode ? initialUpazilaCode.substring(0, 4) : '3026';
+  const [upazilas, setUpazilas] = useState<UpazilaItem[]>(DEFAULT_UPAZILAS[initDistrict] || DEFAULT_UPAZILAS['3026'] || []);
+  const [selectedDistrict, setSelectedDistrict] = useState<string>(initDistrict);
+  const [selectedUpazila, setSelectedUpazila] = useState<string>(initialUpazilaCode || '302602');
+
+  // Sync state if initialUpazilaCode changes
+  useEffect(() => {
+    if (initialUpazilaCode && initialUpazilaCode !== selectedUpazila) {
+      setSelectedUpazila(initialUpazilaCode);
+      const dist = initialUpazilaCode.substring(0, 4);
+      setSelectedDistrict(dist);
+      if (forceSingleView) {
+        setViewMode('single');
+      }
+    }
+  }, [initialUpazilaCode, forceSingleView]);
 
   // Single Upazila Forecast State
   const [forecastData, setForecastData] = useState<ForecastResponseData | null>(null);
@@ -75,7 +99,7 @@ export default function ForecastSection() {
           setUpazilas(list);
         }
       }
-    } catch {}
+    } catch { }
   }, [selectedDistrict]);
 
   // Initial upazilas lookup
@@ -125,7 +149,7 @@ export default function ForecastSection() {
         setLastUpdated(timeStr);
         try {
           sessionStorage.setItem(`nlas_district_${districtCode}`, JSON.stringify(json.data));
-        } catch {}
+        } catch { }
       }
     } catch (err) {
       console.error('District forecast fetch error:', err);
@@ -158,7 +182,7 @@ export default function ForecastSection() {
             return;
           }
         }
-      } catch {}
+      } catch { }
     }
 
     setIsLoadingForecast(true);
@@ -184,7 +208,7 @@ export default function ForecastSection() {
       setForecastData(json.data);
       try {
         sessionStorage.setItem(`nlas_forecast_${upazilaCode}`, JSON.stringify(json.data));
-      } catch {}
+      } catch { }
       const now = new Date();
       const timeStr = now.toLocaleTimeString();
       setLastReloadTimeState(timeStr);
@@ -459,11 +483,17 @@ export default function ForecastSection() {
               onDistrictChange={handleDistrictChange}
               onUpazilaChange={(upazilaCode) => {
                 handleUpazilaChange(upazilaCode);
-                setViewMode('single');
+                router.push(`/forecast/${upazilaCode}`);
               }}
               isLoadingUpazilas={isLoadingUpazilas}
               viewMode={viewMode}
-              onViewModeChange={setViewMode}
+              onViewModeChange={(mode) => {
+                if (mode === 'all') {
+                  setViewMode('all');
+                } else {
+                  router.push(`/forecast/${selectedUpazila}`);
+                }
+              }}
             />
           </div>
 
@@ -474,8 +504,7 @@ export default function ForecastSection() {
               isLoading={isLoadingDistrict}
               onSelectUpazila={(upazilaCode) => {
                 setSelectedUpazila(upazilaCode);
-                setViewMode('single');
-                loadForecast(upazilaCode);
+                router.push(`/forecast/${upazilaCode}`);
               }}
               onReloadDistrict={() => loadDistrictForecast(selectedDistrict, true)}
             />
@@ -520,10 +549,10 @@ export default function ForecastSection() {
             flexWrap: 'wrap',
             gap: '10px'
           }}>
-            <button
+            <Link
+              href="/forecast"
               onClick={() => setViewMode('all')}
               id="btn-back-to-all-upazilas"
-              type="button"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -536,6 +565,7 @@ export default function ForecastSection() {
                 fontWeight: 700,
                 color: '#006a4e',
                 cursor: 'pointer',
+                textDecoration: 'none',
                 boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
                 transition: 'all 0.15s ease'
               }}
@@ -550,11 +580,9 @@ export default function ForecastSection() {
             >
               <LayoutGrid size={15} />
               <span>← View All {upazilas.length} Upazilas in {districtLabel}</span>
-            </button>
+            </Link>
 
-            <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>
-              Viewing 3-Hourly spline graphs for <strong>{upazilaLabel}</strong>
-            </span>
+
           </div>
 
           {/* Single Upazila Forecast: Hero, Daily Grid, Hourly Charts */}
@@ -596,11 +624,27 @@ export default function ForecastSection() {
                     upazilas={upazilas}
                     selectedDistrict={selectedDistrict}
                     selectedUpazila={selectedUpazila}
-                    onDistrictChange={handleDistrictChange}
-                    onUpazilaChange={handleUpazilaChange}
+                    onDistrictChange={(dist) => {
+                      handleDistrictChange(dist);
+                      if (forceSingleView) {
+                        router.push('/forecast');
+                      }
+                    }}
+                    onUpazilaChange={(upCode) => {
+                      handleUpazilaChange(upCode);
+                      if (forceSingleView) {
+                        router.push(`/forecast/${upCode}`);
+                      }
+                    }}
                     isLoadingUpazilas={isLoadingUpazilas}
                     viewMode={viewMode}
-                    onViewModeChange={setViewMode}
+                    onViewModeChange={(mode) => {
+                      if (mode === 'all') {
+                        router.push('/forecast');
+                      } else {
+                        setViewMode('single');
+                      }
+                    }}
                   />
                 }
               />

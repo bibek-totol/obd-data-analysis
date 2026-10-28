@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Sprout,
   Calendar,
@@ -31,6 +33,8 @@ interface BamisSectionProps {
   onRegisterReload?: (reloadFn: () => void) => void;
   onLoadingChange?: (loading: boolean) => void;
   onLastReloadTimeChange?: (time: string) => void;
+  initialDistrictId?: string;
+  forceSingleView?: boolean;
 }
 
 const MAJOR_DISTRICTS = [
@@ -49,13 +53,17 @@ const MAJOR_DISTRICTS = [
 export default function BamisSection({
   onRegisterReload,
   onLoadingChange,
-  onLastReloadTimeChange
+  onLastReloadTimeChange,
+  initialDistrictId,
+  forceSingleView = false
 }: BamisSectionProps) {
+  const router = useRouter();
+
   // View Mode: 'all' displays all 64 zillas in one section (Default); 'single' displays single zilla deep bulletin
-  const [viewMode, setViewMode] = useState<'all' | 'single'>('all');
+  const [viewMode, setViewMode] = useState<'all' | 'single'>(forceSingleView ? 'single' : 'all');
 
   // Location & Language States
-  const [selectedDistrictId, setSelectedDistrictId] = useState<string>('57'); // Chattogram by default
+  const [selectedDistrictId, setSelectedDistrictId] = useState<string>(initialDistrictId || '57');
   const [lang, setLang] = useState<'bn' | 'en'>('bn');
   const [weatherTab, setWeatherTab] = useState<'forecast' | 'past'>('forecast');
 
@@ -71,13 +79,27 @@ export default function BamisSection({
   const [copiedCategory, setCopiedCategory] = useState<string | null>(null);
   const [copiedAll, setCopiedAll] = useState<boolean>(false);
 
+  // Sync state if initialDistrictId changes
+  useEffect(() => {
+    if (initialDistrictId && initialDistrictId !== selectedDistrictId) {
+      setSelectedDistrictId(initialDistrictId);
+    }
+    if (forceSingleView) {
+      setViewMode('single');
+    }
+  }, [initialDistrictId, forceSingleView]);
+
   // Restore state from sessionStorage on mount
   useEffect(() => {
     try {
-      const savedMode = sessionStorage.getItem('bamis_view_mode') as 'all' | 'single' | null;
-      if (savedMode) setViewMode(savedMode);
+      if (!forceSingleView) {
+        const savedMode = sessionStorage.getItem('bamis_view_mode') as 'all' | 'single' | null;
+        if (savedMode) setViewMode(savedMode);
+      } else {
+        setViewMode('single');
+      }
 
-      const savedDistrict = sessionStorage.getItem('bamis_selected_district');
+      const savedDistrict = initialDistrictId || sessionStorage.getItem('bamis_selected_district');
       const savedLang = sessionStorage.getItem('bamis_lang') as 'bn' | 'en' | null;
       if (savedDistrict) setSelectedDistrictId(savedDistrict);
       if (savedLang) setLang(savedLang);
@@ -93,7 +115,8 @@ export default function BamisSection({
       }
 
       // Restore cached single district data
-      const savedSingle = sessionStorage.getItem(`bamis_data_${savedDistrict || '57'}_${savedLang || 'bn'}`);
+      const currentTargetDistrict = initialDistrictId || savedDistrict || '57';
+      const savedSingle = sessionStorage.getItem(`bamis_data_${currentTargetDistrict}_${savedLang || 'bn'}`);
       if (savedSingle) {
         const parsedSingle = JSON.parse(savedSingle);
         setBulletinData(parsedSingle);
@@ -101,7 +124,7 @@ export default function BamisSection({
     } catch (e) {
       // Ignore sessionStorage errors
     }
-  }, []);
+  }, [forceSingleView, initialDistrictId]);
 
   // 1. Fetch All 64 Districts Data
   const loadAllDistricts = async (currentLang: 'bn' | 'en', forceReload: boolean = false) => {
@@ -309,8 +332,12 @@ export default function BamisSection({
           }}>
             <button
               onClick={() => {
-                setViewMode('all');
                 sessionStorage.setItem('bamis_view_mode', 'all');
+                if (forceSingleView) {
+                  router.push('/bamis');
+                } else {
+                  setViewMode('all');
+                }
               }}
               style={{
                 padding: '6px 14px',
@@ -333,10 +360,14 @@ export default function BamisSection({
 
             <button
               onClick={() => {
-                setViewMode('single');
                 sessionStorage.setItem('bamis_view_mode', 'single');
-                if (!bulletinData) {
-                  loadBulletin(selectedDistrictId, lang, false);
+                if (!forceSingleView) {
+                  router.push(`/bamis/${selectedDistrictId}`);
+                } else {
+                  setViewMode('single');
+                  if (!bulletinData) {
+                    loadBulletin(selectedDistrictId, lang, false);
+                  }
                 }
               }}
               style={{
@@ -456,10 +487,9 @@ export default function BamisSection({
           lang={lang}
           onSelectDistrict={(distId) => {
             setSelectedDistrictId(distId);
-            setViewMode('single');
             sessionStorage.setItem('bamis_selected_district', distId);
             sessionStorage.setItem('bamis_view_mode', 'single');
-            loadBulletin(distId, lang, false);
+            router.push(`/bamis/${distId}`);
           }}
           onReload={() => loadAllDistricts(lang, true)}
         />
@@ -479,10 +509,11 @@ export default function BamisSection({
             border: '1px solid #e2e8f0',
             boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
           }}>
-            <button
+            <Link
+              href="/bamis"
               onClick={() => {
-                setViewMode('all');
                 sessionStorage.setItem('bamis_view_mode', 'all');
+                setViewMode('all');
               }}
               style={{
                 display: 'inline-flex',
@@ -496,6 +527,7 @@ export default function BamisSection({
                 fontWeight: 700,
                 color: '#0c713e',
                 cursor: 'pointer',
+                textDecoration: 'none',
                 transition: 'all 0.15s ease'
               }}
               onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#dcfce7'; }}
@@ -503,7 +535,7 @@ export default function BamisSection({
             >
               <LayoutGrid size={15} />
               <span>{lang === 'bn' ? '← সকল ৬৪ জেলার তথ্য ও তালিকায় ফিরে যান' : '← Back to All 64 Districts Overview'}</span>
-            </button>
+            </Link>
 
             <span style={{ fontSize: '13px', color: '#475569', fontWeight: 600 }}>
               {lang === 'bn'
@@ -540,8 +572,12 @@ export default function BamisSection({
                     id="select-bamis-district"
                     value={selectedDistrictId}
                     onChange={(e) => {
-                      setSelectedDistrictId(e.target.value);
-                      sessionStorage.setItem('bamis_selected_district', e.target.value);
+                      const newId = e.target.value;
+                      setSelectedDistrictId(newId);
+                      sessionStorage.setItem('bamis_selected_district', newId);
+                      if (forceSingleView) {
+                        router.push(`/bamis/${newId}`);
+                      }
                     }}
                     style={{
                       width: '100%',
@@ -643,6 +679,9 @@ export default function BamisSection({
                     onClick={() => {
                       setSelectedDistrictId(d.id);
                       sessionStorage.setItem('bamis_selected_district', d.id);
+                      if (forceSingleView) {
+                        router.push(`/bamis/${d.id}`);
+                      }
                     }}
                     style={{
                       padding: '4px 10px',

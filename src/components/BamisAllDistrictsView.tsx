@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   BamisAllDistrictsResponse,
   BamisZillaSummary,
@@ -79,6 +81,7 @@ export default function BamisAllDistrictsView({
   onSelectDistrict,
   onReload
 }: BamisAllDistrictsViewProps) {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedDivision, setSelectedDivision] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'name' | 'temp-high' | 'temp-low' | 'rain' | 'advisories'>('name');
@@ -821,9 +824,12 @@ export default function BamisAllDistrictsView({
                   {z.topAdvisorySnippet}
                 </div>
 
-                {/* Card Action Button: Drill down into single district */}
-                <button
-                  onClick={() => onSelectDistrict(z.districtId)}
+                {/* Card Action Button: Drill down into single district route page */}
+                <Link
+                  href={`/bamis/${z.districtId}`}
+                  onClick={() => {
+                    if (onSelectDistrict) onSelectDistrict(z.districtId);
+                  }}
                   style={{
                     marginTop: 'auto',
                     width: '100%',
@@ -839,6 +845,8 @@ export default function BamisAllDistrictsView({
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '6px',
+                    textDecoration: 'none',
+                    boxSizing: 'border-box',
                     transition: 'all 0.15s ease'
                   }}
                   onMouseEnter={(e) => {
@@ -852,7 +860,7 @@ export default function BamisAllDistrictsView({
                 >
                   <span>{lang === 'bn' ? `পূর্ণাঙ্গ ${z.nameBn} জেলা বুলেটিন দেখুন` : `View Full ${z.nameEn} Bulletin`}</span>
                   <ChevronRight size={14} />
-                </button>
+                </Link>
               </div>
             );
           })}
@@ -914,7 +922,10 @@ export default function BamisAllDistrictsView({
                       }}
                       onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f8fafc'; }}
                       onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                      onClick={() => onSelectDistrict(z.districtId)}
+                      onClick={() => {
+                        if (onSelectDistrict) onSelectDistrict(z.districtId);
+                        router.push(`/bamis/${z.districtId}`);
+                      }}
                     >
                       {/* # */}
                       <td style={{ padding: '12px 14px', color: '#94a3b8', fontWeight: 600 }}>
@@ -1009,10 +1020,11 @@ export default function BamisAllDistrictsView({
 
                       {/* Action */}
                       <td style={{ padding: '12px 14px', textAlign: 'center' }}>
-                        <button
+                        <Link
+                          href={`/bamis/${z.districtId}`}
                           onClick={(e) => {
                             e.stopPropagation();
-                            onSelectDistrict(z.districtId);
+                            if (onSelectDistrict) onSelectDistrict(z.districtId);
                           }}
                           style={{
                             padding: '5px 10px',
@@ -1026,6 +1038,7 @@ export default function BamisAllDistrictsView({
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '4px',
+                            textDecoration: 'none',
                             transition: 'all 0.15s ease'
                           }}
                           onMouseEnter={(e) => {
@@ -1039,7 +1052,7 @@ export default function BamisAllDistrictsView({
                         >
                           <span>{lang === 'bn' ? 'বুলেটিন' : 'View'}</span>
                           <ChevronRight size={12} />
-                        </button>
+                        </Link>
                       </td>
                     </tr>
                   );

@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   BmdDistrictItem,
   BmdUpazilaItem,
@@ -32,24 +34,43 @@ interface BmdSectionProps {
   onRegisterReload?: (fn: () => void) => void;
   onLoadingChange?: (loading: boolean) => void;
   onLastReloadTimeChange?: (time: string) => void;
+  initialUpazilaCode?: string;
+  forceSingleView?: boolean;
 }
 
 export default function BmdSection({
   onRegisterReload,
   onLoadingChange,
-  onLastReloadTimeChange
+  onLastReloadTimeChange,
+  initialUpazilaCode,
+  forceSingleView = false
 }: BmdSectionProps) {
+  const router = useRouter();
+
   // Language State: 'bn' (Default on BMD) or 'en'
   const [lang, setLang] = useState<'en' | 'bn'>('bn');
 
   // View Mode: 'all' displays all upazilas in selected district; 'single' displays single upazila charts
-  const [viewMode, setViewMode] = useState<'single' | 'all'>('all');
+  const [viewMode, setViewMode] = useState<'single' | 'all'>(forceSingleView ? 'single' : 'all');
 
   // Location States
   const [districts] = useState<BmdDistrictItem[]>(BMD_DISTRICTS);
-  const [upazilas, setUpazilas] = useState<BmdUpazilaItem[]>(DEFAULT_BMD_UPAZILAS['3026'] || []);
-  const [selectedDistrict, setSelectedDistrict] = useState<string>('3026'); // Dhaka
-  const [selectedUpazila, setSelectedUpazila] = useState<string>('302602'); // Adabor
+  const initDistrict = initialUpazilaCode ? initialUpazilaCode.substring(0, 4) : '3026';
+  const [upazilas, setUpazilas] = useState<BmdUpazilaItem[]>(DEFAULT_BMD_UPAZILAS[initDistrict] || DEFAULT_BMD_UPAZILAS['3026'] || []);
+  const [selectedDistrict, setSelectedDistrict] = useState<string>(initDistrict);
+  const [selectedUpazila, setSelectedUpazila] = useState<string>(initialUpazilaCode || '302602');
+
+  // Sync state if initialUpazilaCode changes
+  useEffect(() => {
+    if (initialUpazilaCode && initialUpazilaCode !== selectedUpazila) {
+      setSelectedUpazila(initialUpazilaCode);
+      const dist = initialUpazilaCode.substring(0, 4);
+      setSelectedDistrict(dist);
+      if (forceSingleView) {
+        setViewMode('single');
+      }
+    }
+  }, [initialUpazilaCode, forceSingleView]);
 
   // Single Upazila Forecast States
   const [forecastData, setForecastData] = useState<BmdForecastResponseData | null>(null);
@@ -264,16 +285,27 @@ export default function BmdSection({
     const newDistrict = e.target.value;
     setSelectedDistrict(newDistrict);
     loadDistrictForecast(newDistrict, lang, false);
+    if (forceSingleView) {
+      router.push('/bmd');
+    }
   };
 
   const handleUpazilaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newUpazila = e.target.value;
     if (newUpazila === 'all') {
-      setViewMode('all');
+      if (forceSingleView) {
+        router.push('/bmd');
+      } else {
+        setViewMode('all');
+      }
     } else {
       setSelectedUpazila(newUpazila);
-      setViewMode('single');
-      loadForecast(newUpazila, lang, false);
+      if (forceSingleView) {
+        router.push(`/bmd/${newUpazila}`);
+      } else {
+        setViewMode('single');
+        loadForecast(newUpazila, lang, false);
+      }
     }
   };
 
@@ -412,7 +444,13 @@ export default function BmdSection({
           }}>
             <button
               id="btn-bmd-view-all"
-              onClick={() => setViewMode('all')}
+              onClick={() => {
+                if (forceSingleView) {
+                  router.push('/bmd');
+                } else {
+                  setViewMode('all');
+                }
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -434,7 +472,13 @@ export default function BmdSection({
             </button>
             <button
               id="btn-bmd-view-single"
-              onClick={() => setViewMode('single')}
+              onClick={() => {
+                if (!forceSingleView) {
+                  router.push(`/bmd/${selectedUpazila}`);
+                } else {
+                  setViewMode('single');
+                }
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -547,8 +591,7 @@ export default function BmdSection({
             lang={lang}
             onSelectUpazila={(upazilaCode) => {
               setSelectedUpazila(upazilaCode);
-              setViewMode('single');
-              loadForecast(upazilaCode, lang, false);
+              router.push(`/bmd/${upazilaCode}`);
             }}
             onReloadDistrict={() => loadDistrictForecast(selectedDistrict, lang, true)}
           />
@@ -613,7 +656,8 @@ export default function BmdSection({
               </span>
             </div>
 
-            <button
+            <Link
+              href="/bmd"
               onClick={() => setViewMode('all')}
               style={{
                 display: 'inline-flex',
@@ -627,6 +671,7 @@ export default function BmdSection({
                 fontSize: '12px',
                 fontWeight: 700,
                 cursor: 'pointer',
+                textDecoration: 'none',
                 transition: 'all 0.15s ease'
               }}
               onMouseEnter={(e) => {
@@ -644,7 +689,7 @@ export default function BmdSection({
                   ? `← ${districtLabel} জেলার সকল উপজেলা (${upazilas.length}) দেখুন`
                   : `← View All ${upazilas.length} Upazilas in ${districtLabel}`}
               </span>
-            </button>
+            </Link>
           </div>
 
           {/* Single Upazila Weather Details */}

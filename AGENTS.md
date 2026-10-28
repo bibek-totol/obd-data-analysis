@@ -90,9 +90,14 @@ Data is harvested directly from the NLAS backend services (`https://nlas.dls.gov
 - **`src/components/ForecastSection.tsx`**: Modularized NLAS Weather Forecast section (All-Upazilas vs Single-Upazila view, hero card, daily grid, spline charts).
 - **`src/app/page.tsx`**: Root route handler that automatically redirects `localhost:3000/` to `/forecast`.
 - **`src/app/forecast/page.tsx`**: Dedicated page route for NLAS Weather Forecast (`/forecast`).
+- **`src/app/forecast/[upazilaCode]/page.tsx`**: Dedicated dynamic route page for single upazila weather forecast & 3-hourly spline charts (`/forecast/[upazilaCode]`, e.g. `/forecast/302602` for Adabor).
+- **`src/app/forecast/charts/[upazilaCode]/page.tsx`**: Alias redirect route forwarding to `/forecast/[upazilaCode]`.
 - **`src/app/advisory/page.tsx`**: Dedicated page route for Regional Livestock Advisory (`/advisory`).
 - **`src/app/bmd/page.tsx`**: Dedicated page route for BMD Upazila Weather Forecast (`/bmd`).
-- **`src/app/bamis/page.tsx`**: Dedicated page route for BAMIS District Agromet Bulletin (`/bamis`).
+- **`src/app/bmd/[upazilaCode]/page.tsx`**: Dedicated dynamic route page for single station BMD weather telemetry & 3-hourly interactive SVG charts (`/bmd/[upazilaCode]`, e.g. `/bmd/302602` for Adabor).
+- **`src/app/bmd/charts/[upazilaCode]/page.tsx`**: Alias redirect route forwarding to `/bmd/[upazilaCode]`.
+- **`src/app/bamis/page.tsx`**: Dedicated page route for BAMIS All 64 Districts Agromet Overview (`/bamis`).
+- **`src/app/bamis/[districtId]/page.tsx`**: Dedicated dynamic route page for single district Agromet Bulletins (`/bamis/[districtId]`, e.g. `/bamis/37` for Dhaka, `/bamis/57` for Chattogram).
 - **`src/app/bmd-forecast/page.tsx`**: Redirect route sending `/bmd-forecast` to `/bmd`.
 - **`src/app/bamis-bulletin/page.tsx`**: Redirect route sending `/bamis-bulletin` to `/bamis`.
 - **`src/app/globals.css`**: Design tokens, typography (Inter & Hind Siliguri), smooth animations, and scrollbars.
@@ -102,44 +107,46 @@ Data is harvested directly from the NLAS backend services (`https://nlas.dls.gov
 ## 4. Integrated Websites
 1. **NLS Portal (NLAS)** (`nlas.dls.gov.bd`):
    - **Forecast Section**: 
-     - **District All-Upazilas View**: When any district is selected, all monitored upazilas are displayed on one page with KPI metrics, search, sorting, cards grid, and comparison table.
-     - **Single Upazila Deep View**: Meteorological forecasts, 5-6 day weather cards, and 3-hourly interval spline charts.
+     - **District All-Upazilas View (`/forecast`)**: When any district is selected, all monitored upazilas are displayed on one page with KPI metrics, search, sorting, cards grid, and comparison table.
+     - **Dedicated 3-Hourly Charts Route (`/forecast/[upazilaCode]`)**: Clicking "Inspect 3-Hourly Spline Charts" or table "Inspect Charts" opens dedicated route `/forecast/[upazilaCode]` with Hero card, 5-6 day outlook, high-precision SVG spline charts, breadcrumbs, and return link to `/forecast`.
    - **Advisory Section**: Region-wise monthly advisory with 7 agro-ecological zones, 12-month climatology graphs, and tailored livestock/poultry bulletins.
 2. **BMD USF Portal** (`https://usf.bmd.gov.bd/`):
    - **Upazila Weather Forecast Section**:
      - Real-time meteorological telemetry directly from BMDWRF and `https://api.bdservers.site`.
-     - **District All-Upazilas View**: When any district (Jela) is selected, all monitored upazilas in that district are displayed on one page with:
+     - **District All-Upazilas View (`/bmd`)**: When any district (Jela) is selected, all monitored upazilas in that district are displayed on one page with:
        - Aggregate KPI metrics (Total Stations, Temp Range, Avg Humidity, Rainy Stations Alert).
        - Real-time search (Bengali & English) and 5-way sorting (A-Z, Highest Temp, Lowest Temp, Highest Humidity, Highest Rain).
        - In-card tab switcher: **5-8 Day Outlook** (spacious Apple Weather-style rows with diurnal temperature spectrum bars) and **3-Hourly Timeline** (clean horizontal scroll tracks with formatted time spans like `06:00 AM – 09:00 AM` / `০৬:০০ - ০৯:০০`).
        - Layout switcher: Cards Grid View and Sortable Comparison Table.
-       - "Inspect 3-Hourly Charts" button to drill down into single upazila view with return navigation.
-     - **Single Upazila Deep View**:
+     - **Dedicated 3-Hourly Charts Route (`/bmd/[upazilaCode]`)**:
+       - Clicking "৩-ঘণ্টার বিস্তারিত চার্ট ও গ্রাফ দেখুন" or table "চার্ট দেখুন" navigates to `/bmd/[upazilaCode]`.
        - Real-time observation Hero card with Day/Night atmospheric gradient, temperature, Heat Index real feel, relative humidity, wind speed and 360° rotating compass pointer.
        - 8-Day Daily Weather Cards showing day/night condition icons, max/min temps, precipitation range, wind speed/direction, and relative humidity.
        - 3-Hourly Interactive High-Precision SVG Charts (Next 3 days / 24 steps):
          - Chart 1: Temperature Spline with condition icon plotted at each 3-hour interval.
          - Chart 2: Rainfall (mm) bar/area & Relative Humidity (%) spline chart with dual axis.
          - Chart 3: Wind Speed (km/h) spline & 360° rotating compass pointer arrow for each step.
+       - Return navigation link: `← সকল স্টেশনে ফিরে যান` linking back to `/bmd`.
      - Bilingual toggle (`English` / `বাংলা`) with Bengali numerals, weekdays, and weather terminology.
      - Technical attribution to Bangladesh Meteorological Department (BMD), RIMES, and Govt of Bangladesh.
 3. **BAMIS Portal (DAE)** (`https://www.bamis.gov.bd/`):
    - **District Agromet Advisory Bulletin Section**:
      - Official bulletins from Department of Agricultural Extension (DAE) & Ministry of Agriculture.
-     - **All 64 Zillas in One Section (`BamisAllDistrictsView.tsx`)**:
+     - **All 64 Zillas in One Section (`BamisAllDistrictsView.tsx` on `/bamis`)**:
        - National Agromet KPI Telemetry banner: 64 districts across 8 divisions, temperature spectrum (min/max/average), rainfall forecast alert count, average relative humidity, and active bulletin window.
        - Interactive Division Filter Chips: Instant filtering by division (All, Dhaka, Chattogram, Rajshahi, Khulna, Barishal, Sylhet, Rangpur, Mymensingh) with district count badges.
        - Real-time Search: Live search across district names (Bengali & English), divisions, and crop types.
        - 5-Way Sorting: District Name (A-Z / ক-হ), Highest Max Temp, Lowest Min Temp, Highest Rain Outlook, Most Advisories.
        - Dual Layouts:
-         - **Cards Grid View**: Individual cards for each zilla featuring rain forecast badge, 5-day rain amount, max/min temperature range, humidity, wind speed & direction, crop advisory tags, primary advisory excerpt, and "View Full Bulletin" button.
-         - **Comparison Table View**: High-density sortable comparison table with all 64 districts and key meteorological & agricultural indicators.
-       - Seamless Transition: Clicking any zilla smoothly drills down into its detailed single-district bulletin.
-     - **Single Zilla Deep Bulletin View**:
-       - Prominent return button: `← সকল ৬৪ জেলার তথ্য ও তালিকায় ফিরে যান` (Back to All 64 Districts).
+         - **Cards Grid View**: Individual cards for each zilla featuring rain forecast badge, 5-day rain amount, max/min temperature range, humidity, wind speed & direction, crop advisory tags, primary advisory excerpt, and "পূর্ণাঙ্গ [জেলা] বুলেটিন দেখুন" (`buletin dekhun`) button.
+         - **Comparison Table View**: High-density sortable comparison table with all 64 districts, key meteorological & agricultural indicators, and "বুলেটিন" (`buletin`) action link.
+       - **Route-Based Single District Drilldown (`/bamis/[districtId]`)**: Clicking "পূর্ণাঙ্গ জেলা বুলেটিন দেখুন", the table "বুলেটিন" button, or any table row navigates directly to dedicated route `/bamis/[districtId]` (e.g. `/bamis/37` for Dhaka, `/bamis/57` for Chattogram).
+     - **Single Zilla Deep Bulletin Page (`src/app/bamis/[districtId]/page.tsx`)**:
+       - Prominent breadcrumb & return button: `← সকল ৬৪ জেলা তালিকায় ফিরে যান` (Back to All 64 Districts) linking back to `/bamis`.
        - Interactive Agromet Dashboard with 4 KPI summary cards, Sub-tab switcher between Past 4 Days Observed Weather and Next 5 Days BMD Forecast tables.
        - Categorized Crop & Agricultural Advisory Cards (Aman Rice, Boro Rice, Vegetables, Fruit Crops, Livestock, Poultry, Fisheries, Potato) with one-click copy.
        - Print view support (`window.print()`).
+       - Dropdown and quick jump pills update URL dynamically to other district bulletin pages.
      - Bilingual toggle (`English` / `বাংলা`) with Bengali numerals and translations.
 
 

@@ -27,9 +27,11 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <DashboardShell>
-          {children}
-        </DashboardShell>
+        <React.Suspense fallback={null}>
+          <DashboardShell>
+            {children}
+          </DashboardShell>
+        </React.Suspense>
       </body>
     </html>
   );

@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   BmdDistrictForecastResponseData,
   BmdUpazilaWeatherSummary
@@ -43,6 +45,7 @@ export default function BmdDistrictAllUpazilasView({
   onSelectUpazila,
   onReloadDistrict
 }: BmdDistrictAllUpazilasViewProps) {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'temp-high' | 'temp-low' | 'humidity' | 'rain'>('name');
   const [viewType, setViewType] = useState<'grid' | 'table'>('grid');
@@ -986,9 +989,11 @@ export default function BmdDistrictAllUpazilasView({
                 </div>
 
                 {/* Card Action Button: Deep 3-Hourly Spline Graphs */}
-                <button
-                  onClick={() => onSelectUpazila(u.upazilaCode)}
-                  type="button"
+                <Link
+                  href={`/bmd/${u.upazilaCode}`}
+                  onClick={() => {
+                    if (onSelectUpazila) onSelectUpazila(u.upazilaCode);
+                  }}
                   style={{
                     width: '100%',
                     padding: '11px 16px',
@@ -1003,6 +1008,8 @@ export default function BmdDistrictAllUpazilasView({
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '8px',
+                    textDecoration: 'none',
+                    boxSizing: 'border-box',
                     transition: 'all 0.15s ease',
                     boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
                   }}
@@ -1017,7 +1024,7 @@ export default function BmdDistrictAllUpazilasView({
                 >
                   <span>{lang === 'bn' ? '৩-ঘণ্টার বিস্তারিত চার্ট ও গ্রাফ দেখুন' : 'Inspect 3-Hourly Spline Charts'}</span>
                   <ChevronRight size={16} />
-                </button>
+                </Link>
               </div>
             );
           })}
@@ -1056,10 +1063,15 @@ export default function BmdDistrictAllUpazilasView({
                     key={u.upazilaCode}
                     style={{
                       borderBottom: '1px solid #f1f5f9',
-                      transition: 'background-color 0.1s ease'
+                      transition: 'background-color 0.1s ease',
+                      cursor: 'pointer'
                     }}
                     onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
+                    onClick={() => {
+                      if (onSelectUpazila) onSelectUpazila(u.upazilaCode);
+                      router.push(`/bmd/${u.upazilaCode}`);
+                    }}
                   >
                     <td style={{ padding: '14px 18px', color: '#94a3b8', fontWeight: 600 }}>{idx + 1}</td>
                     <td style={{ padding: '14px 18px', fontWeight: 800, color: '#0f172a' }}>
@@ -1105,8 +1117,12 @@ export default function BmdDistrictAllUpazilasView({
                       </div>
                     </td>
                     <td style={{ padding: '14px 18px', textAlign: 'center' }}>
-                      <button
-                        onClick={() => onSelectUpazila(u.upazilaCode)}
+                      <Link
+                        href={`/bmd/${u.upazilaCode}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onSelectUpazila) onSelectUpazila(u.upazilaCode);
+                        }}
                         style={{
                           padding: '6px 14px',
                           backgroundColor: '#0369a1',
@@ -1115,11 +1131,16 @@ export default function BmdDistrictAllUpazilasView({
                           border: 'none',
                           fontSize: '11.5px',
                           fontWeight: 700,
-                          cursor: 'pointer'
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          textDecoration: 'none'
                         }}
                       >
-                        {lang === 'bn' ? 'চার্ট দেখুন' : 'Inspect'}
-                      </button>
+                        <span>{lang === 'bn' ? 'চার্ট দেখুন' : 'Inspect'}</span>
+                        <ChevronRight size={12} />
+                      </Link>
                     </td>
                   </tr>
                 );
