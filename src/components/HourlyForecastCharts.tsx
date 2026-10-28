@@ -176,7 +176,7 @@ export default function HourlyForecastCharts({
         </div>
 
         {/* SVG Chart Container */}
-        <div style={{ position: 'relative', width: '100%', overflowX: 'auto' }}>
+        <div className="touch-scroll-track" style={{ position: 'relative', width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <svg
             viewBox={`0 0 ${svgWidth} ${svgHeight}`}
             style={{ width: '100%', minWidth: '850px', height: 'auto', display: 'block' }}
@@ -440,7 +440,7 @@ export default function HourlyForecastCharts({
         boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
       }}>
         {/* SVG Chart */}
-        <div style={{ position: 'relative', width: '100%', overflowX: 'auto' }}>
+        <div className="touch-scroll-track" style={{ position: 'relative', width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <svg
             viewBox={`0 0 ${svgWidth} ${svgHeight}`}
             style={{ width: '100%', minWidth: '850px', height: 'auto', display: 'block' }}
@@ -746,7 +746,7 @@ export default function HourlyForecastCharts({
         boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
       }}>
         {/* SVG Chart */}
-        <div style={{ position: 'relative', width: '100%', overflowX: 'auto' }}>
+        <div className="touch-scroll-track" style={{ position: 'relative', width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <svg
             viewBox={`0 0 ${svgWidth} ${svgHeight}`}
             style={{ width: '100%', minWidth: '850px', height: 'auto', display: 'block' }}

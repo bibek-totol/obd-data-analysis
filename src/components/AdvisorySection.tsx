@@ -598,7 +598,7 @@ export default function AdvisorySection({
           </div>
 
           {/* SVG Composite Chart Canvas */}
-          <div style={{ position: 'relative', width: '100%', overflowX: 'auto' }}>
+          <div className="touch-scroll-track" style={{ position: 'relative', width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
             <svg
               viewBox={`0 0 ${chartWidth} ${chartHeight}`}
               style={{ width: '100%', height: 'auto', minWidth: '600px', overflow: 'visible' }}
@@ -923,7 +923,7 @@ export default function AdvisorySection({
         )}
 
         {/* 2-Column Responsive Grid: Livestock Card & Poultry Card */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 360px), 1fr))', gap: '20px' }}>
           {/* Livestock Card */}
           <div style={{
             backgroundColor: '#ffffff',

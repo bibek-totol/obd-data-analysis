@@ -208,7 +208,7 @@ export default function BmdDistrictAllUpazilasView({
         {/* 4-Card KPI Stat Strip */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
           gap: '14px'
         }}>
           {/* KPI 1: Monitored Upazilas */}
@@ -329,7 +329,7 @@ export default function BmdDistrictAllUpazilasView({
         boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
       }}>
         {/* Left: Search Box */}
-        <div style={{ position: 'relative', minWidth: '260px', flex: '1 1 260px' }}>
+        <div style={{ position: 'relative', minWidth: 'min(100%, 240px)', flex: '1 1 240px' }}>
           <Search size={16} color="#64748b" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
           <input
             type="text"
@@ -532,7 +532,7 @@ export default function BmdDistrictAllUpazilasView({
       ) : viewType === 'grid' ? (
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(460px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 380px), 1fr))',
           gap: '24px'
         }}>
           {filteredUpazilas.map((u) => {
@@ -1038,6 +1038,7 @@ export default function BmdDistrictAllUpazilasView({
           borderRadius: '16px',
           border: '1px solid #e2e8f0',
           overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch',
           boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
         }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>

@@ -732,7 +732,7 @@ export default function BmdSection({
                   : 'linear-gradient(112deg, #060e2f 0%, #081a4a 28%, #0a336f 55%, #0a6291ff 76%, #32b2f7ff 92%, #32b2f7ff 100%)',
                 color: '#ffffff',
                 borderRadius: '26px',
-                padding: '30px 36px 20px',
+                padding: 'clamp(18px, 3.5vw, 30px) clamp(16px, 4vw, 36px) 20px',
                 boxShadow: '0 20px 45px -10px rgba(3, 105, 161, 0.4), 0 0 25px rgba(3, 105, 161, 0.15)',
                 position: 'relative',
                 overflow: 'hidden',
@@ -765,7 +765,7 @@ export default function BmdSection({
                       <Calendar size={18} color="rgba(255,255,255,0.85)" />
                       <span>{forecastData.hero.dateFormatted}</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '28px', fontWeight: 800, marginTop: '8px', color: '#ffffff', letterSpacing: '-0.01em' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: 'clamp(18px, 4.5vw, 26px)', fontWeight: 800, marginTop: '8px', color: '#ffffff', letterSpacing: '-0.01em' }}>
                       <MapPin size={24} color="#ffffff" strokeWidth={2.4} />
                       <span>{forecastData.hero.locationTitle}</span>
                     </div>
@@ -926,7 +926,9 @@ export default function BmdSection({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  marginBottom: '14px'
+                  marginBottom: '14px',
+                  flexWrap: 'wrap',
+                  gap: '8px'
                 }}>
                   <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
                     {lang === 'bn'
@@ -940,7 +942,7 @@ export default function BmdSection({
 
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 125px), 1fr))',
                   gap: '12px'
                 }}>
                   {forecastData.daily.map(day => (

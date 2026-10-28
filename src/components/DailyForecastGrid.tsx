@@ -18,7 +18,9 @@ export default function DailyForecastGrid({ daily }: DailyForecastGridProps) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: '14px'
+        marginBottom: '14px',
+        flexWrap: 'wrap',
+        gap: '8px'
       }}>
         <h2 style={{
           fontSize: '15px',
@@ -35,7 +37,7 @@ export default function DailyForecastGrid({ daily }: DailyForecastGridProps) {
 
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))',
         gap: '12px'
       }}>
         {daily.map((item, index) => {
@@ -124,7 +126,6 @@ export default function DailyForecastGrid({ daily }: DailyForecastGridProps) {
                   {item.cloud_condition.name}
                 </div>
               </div>
-
 
               {/* Metric 1: Temp Max / Min */}
               <div style={{

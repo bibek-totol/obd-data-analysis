@@ -84,7 +84,8 @@ export default function BmdUpazilaChartsPage() {
           }}
         >
           <ArrowLeft size={16} />
-          <span>সকল স্টেশনে ফিরে যান (Back to All Stations)</span>
+          <span className="hide-on-mobile">সকল স্টেশনে ফিরে যান (Back to All Stations)</span>
+          <span className="mobile-only-block" style={{ display: 'none' }}>সকল স্টেশন</span>
         </Link>
       </div>
 

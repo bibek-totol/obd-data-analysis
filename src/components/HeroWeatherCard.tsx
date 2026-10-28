@@ -20,7 +20,7 @@ export default function HeroWeatherCard({
     <div style={{
       background: 'linear-gradient(135deg, #0d2820 0%, #12392e 35%, #184c3e 70%, #0f3026 100%)',
       borderRadius: '16px',
-      padding: '24px 28px',
+      padding: 'clamp(18px, 3.5vw, 24px) clamp(16px, 4vw, 28px)',
       color: '#ffffff',
       boxShadow: '0 12px 30px -5px rgba(8, 38, 28, 0.4), 0 4px 10px rgba(0, 0, 0, 0.12)',
       border: '1px solid rgba(52, 211, 153, 0.2)',
@@ -60,7 +60,7 @@ export default function HeroWeatherCard({
       {/* Main Content Grid */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
         gap: '24px',
         alignItems: 'center'
       }}>
@@ -71,7 +71,7 @@ export default function HeroWeatherCard({
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            fontSize: '18px',
+            fontSize: 'clamp(15px, 3.8vw, 18px)',
             fontWeight: 700,
             color: '#f8fafc',
             marginBottom: '8px'
@@ -85,10 +85,11 @@ export default function HeroWeatherCard({
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            fontSize: '15px',
+            fontSize: 'clamp(13px, 3.2vw, 15px)',
             fontWeight: 600,
             color: '#cbd5e1',
-            marginBottom: '24px'
+            marginBottom: '20px',
+            flexWrap: 'wrap'
           }}>
             <MapPin size={18} color="#34d399" />
             <span>
@@ -100,7 +101,7 @@ export default function HeroWeatherCard({
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '14px',
+            gap: '10px',
             flexWrap: 'wrap'
           }}>
             {/* Relative Humidity */}
@@ -113,7 +114,7 @@ export default function HeroWeatherCard({
               WebkitBackdropFilter: 'blur(10px)',
               border: '1px solid rgba(255, 255, 255, 0.15)',
               borderRadius: '10px',
-              padding: '8px 16px',
+              padding: '8px 14px',
               boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)'
             }}>
               <Droplets size={18} color="#38bdf8" />
@@ -121,7 +122,7 @@ export default function HeroWeatherCard({
                 <div style={{ fontSize: '10px', color: '#a7f3d0', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   Relative Humidity
                 </div>
-                <div style={{ fontSize: '16px', fontWeight: 700, color: '#ffffff' }}>
+                <div style={{ fontSize: '15px', fontWeight: 700, color: '#ffffff' }}>
                   {current.rh} %
                 </div>
               </div>
@@ -137,7 +138,7 @@ export default function HeroWeatherCard({
               WebkitBackdropFilter: 'blur(10px)',
               border: '1px solid rgba(255, 255, 255, 0.15)',
               borderRadius: '10px',
-              padding: '8px 16px',
+              padding: '8px 14px',
               boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)'
             }}>
               <Thermometer size={18} color="#f87171" />
@@ -145,7 +146,7 @@ export default function HeroWeatherCard({
                 <div style={{ fontSize: '10px', color: '#a7f3d0', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   Temperature
                 </div>
-                <div style={{ fontSize: '16px', fontWeight: 700, color: '#ffffff' }}>
+                <div style={{ fontSize: '15px', fontWeight: 700, color: '#ffffff' }}>
                   {Math.round(current.temperature)} °C
                 </div>
               </div>
@@ -161,7 +162,7 @@ export default function HeroWeatherCard({
               WebkitBackdropFilter: 'blur(10px)',
               border: '1px solid rgba(255, 255, 255, 0.15)',
               borderRadius: '10px',
-              padding: '8px 16px',
+              padding: '8px 14px',
               boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)'
             }}>
               <Wind size={18} color="#a7f3d0" />
@@ -169,7 +170,7 @@ export default function HeroWeatherCard({
                 <div style={{ fontSize: '10px', color: '#a7f3d0', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   Wind Speed
                 </div>
-                <div style={{ fontSize: '16px', fontWeight: 700, color: '#ffffff' }}>
+                <div style={{ fontSize: '15px', fontWeight: 700, color: '#ffffff' }}>
                   {current.wind_speed} km/h {current.wind_direction}
                 </div>
               </div>
@@ -181,41 +182,47 @@ export default function HeroWeatherCard({
         <div style={{
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'flex-end',
+          alignItems: 'flex-start',
           justifyContent: 'space-between',
-          textAlign: 'right'
+          gap: '12px'
         }}>
           {/* Condition & Sun/Cloud Icon */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
             gap: '14px',
-            marginBottom: '20px'
+            backgroundColor: 'rgba(255, 255, 255, 0.08)',
+            padding: '10px 16px',
+            borderRadius: '14px',
+            border: '1px solid rgba(255, 255, 255, 0.12)'
           }}>
             <div style={{
-              width: '56px',
-              height: '56px',
+              width: '48px',
+              height: '48px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
             }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               {current.condition_image ? (
-                <img src={current.condition_image} alt={current.condition_name} style={{ width: '52px', height: '52px', objectFit: 'contain' }} />
+                <img src={current.condition_image} alt={current.condition_name} style={{ width: '46px', height: '46px', objectFit: 'contain' }} />
               ) : current.is_day ? (
-                <Sun size={48} color="#fbbf24" />
+                <Sun size={42} color="#fbbf24" />
               ) : (
-                <Moon size={42} color="#e2e8f0" />
+                <Moon size={38} color="#e2e8f0" />
               )}
             </div>
             <div>
               <div style={{
-                fontSize: '24px',
+                fontSize: 'clamp(18px, 4vw, 22px)',
                 fontWeight: 800,
                 letterSpacing: '0.04em',
                 color: '#ffffff'
               }}>
                 {current.condition_name}
+              </div>
+              <div style={{ fontSize: '11px', color: '#cbd5e1' }}>
+                {current.is_day ? 'Day Observation' : 'Night Observation'}
               </div>
             </div>
           </div>

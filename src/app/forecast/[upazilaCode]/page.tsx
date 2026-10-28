@@ -72,7 +72,8 @@ export default function ForecastUpazilaChartsPage() {
           }}
         >
           <ArrowLeft size={16} />
-          <span>সকল উপজেলায় ফিরে যান (Back to All Upazilas)</span>
+          <span className="hide-on-mobile">সকল উপজেলায় ফিরে যান (Back to All Upazilas)</span>
+          <span className="mobile-only-block" style={{ display: 'none' }}>সকল উপজেলা</span>
         </Link>
       </div>
 

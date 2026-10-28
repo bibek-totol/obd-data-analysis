@@ -31,11 +31,12 @@ export default function LocationSelector({
     <div style={{
       display: 'flex',
       alignItems: 'center',
-      gap: '12px',
-      flexWrap: 'wrap'
+      gap: '10px',
+      flexWrap: 'wrap',
+      width: '100%'
     }}>
       {/* District Dropdown */}
-      <div style={{ position: 'relative', minWidth: '180px' }}>
+      <div style={{ position: 'relative', minWidth: 'min(100%, 160px)', flex: '1 1 160px' }}>
         <select
           id="select-district"
           value={selectedDistrict}
@@ -78,7 +79,7 @@ export default function LocationSelector({
       </div>
 
       {/* Upazila Dropdown */}
-      <div style={{ position: 'relative', minWidth: '220px' }}>
+      <div style={{ position: 'relative', minWidth: 'min(100%, 200px)', flex: '1 1 200px' }}>
         <select
           id="select-upazila"
           value={viewMode === 'all' ? 'all' : selectedUpazila}
@@ -147,7 +148,8 @@ export default function LocationSelector({
           borderRadius: '8px',
           padding: '3px',
           border: '1px solid rgba(255, 255, 255, 0.28)',
-          backdropFilter: 'blur(8px)'
+          backdropFilter: 'blur(8px)',
+          flexShrink: 0
         }}>
           <button
             onClick={() => onViewModeChange('all')}

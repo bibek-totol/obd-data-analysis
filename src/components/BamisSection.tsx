@@ -738,7 +738,7 @@ export default function BamisSection({
               {/* Single District KPI Telemetry Banner */}
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
                 gap: '16px'
               }}>
                 {/* Card 1: Bulletin Meta */}
@@ -1111,7 +1111,7 @@ export default function BamisSection({
                 {/* Grid of Advisory Cards */}
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
                   gap: '16px'
                 }}>
                   {bulletinData.advisories.map((advisory, idx) => {

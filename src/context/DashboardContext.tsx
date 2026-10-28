@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useRef, useCallback } from 'react';
+import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { ActiveSection } from '@/components/Sidebar';
 
@@ -8,6 +8,10 @@ interface DashboardContextType {
   activeSection: ActiveSection;
   isSidebarCollapsed: boolean;
   toggleSidebar: () => void;
+  isMobileDrawerOpen: boolean;
+  setIsMobileDrawerOpen: (open: boolean) => void;
+  toggleMobileDrawer: () => void;
+  closeMobileDrawer: () => void;
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
   lastUpdated: string;
@@ -21,6 +25,7 @@ const DashboardContext = createContext<DashboardContextType | null>(null);
 export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || '/';
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState('');
   const reloadFnRef = useRef<(() => void) | null>(null);
@@ -37,6 +42,11 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     activeSection = 'forecast';
   }
 
+  // Automatically close mobile navigation drawer whenever route pathname changes
+  useEffect(() => {
+    setIsMobileDrawerOpen(false);
+  }, [pathname]);
+
   const registerReload = useCallback((fn: () => void) => {
     reloadFnRef.current = fn;
   }, []);
@@ -51,12 +61,24 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     setIsSidebarCollapsed(prev => !prev);
   }, []);
 
+  const toggleMobileDrawer = useCallback(() => {
+    setIsMobileDrawerOpen(prev => !prev);
+  }, []);
+
+  const closeMobileDrawer = useCallback(() => {
+    setIsMobileDrawerOpen(false);
+  }, []);
+
   return (
     <DashboardContext.Provider
       value={{
         activeSection,
         isSidebarCollapsed,
         toggleSidebar,
+        isMobileDrawerOpen,
+        setIsMobileDrawerOpen,
+        toggleMobileDrawer,
+        closeMobileDrawer,
         isLoading,
         setIsLoading,
         lastUpdated,

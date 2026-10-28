@@ -26,7 +26,7 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
       />
 
       {/* Main Body with Sidebar & Content */}
-      <div style={{ display: 'flex', flex: 1, minHeight: 'calc(100vh - 65px)' }}>
+      <div style={{ display: 'flex', flex: 1, minHeight: 'calc(100vh - 65px)', position: 'relative' }}>
         {/* Left Section: Sidebar with Next.js Link routing */}
         <Sidebar
           activeSection={activeSection}
@@ -34,15 +34,8 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
           onToggleCollapse={toggleSidebar}
         />
 
-        {/* Right Section: Page Content */}
-        <main style={{
-          flex: 1,
-          padding: '24px 32px',
-          overflowY: 'auto',
-          maxWidth: '1600px',
-          width: '100%',
-          boxSizing: 'border-box'
-        }}>
+        {/* Right Section: Page Content with Responsive Padding */}
+        <main className="app-main-content">
           {children}
         </main>
       </div>

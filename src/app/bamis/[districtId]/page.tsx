@@ -57,7 +57,7 @@ export default function BamisDistrictPage() {
             </span>
           </div>
           <h1 style={{
-            fontSize: '22px',
+            fontSize: 'clamp(16px, 4vw, 22px)',
             fontWeight: 800,
             color: '#0f172a',
             marginTop: '4px',
@@ -97,7 +97,8 @@ export default function BamisDistrictPage() {
           }}
         >
           <ArrowLeft size={16} />
-          <span>সকল ৬৪ জেলা তালিকায় ফিরে যান (Back to All 64 Districts)</span>
+          <span className="hide-on-mobile">সকল ৬৪ জেলা তালিকায় ফিরে যান (Back to All 64 Districts)</span>
+          <span className="mobile-only-block" style={{ display: 'none' }}>সকল জেলা তালিকা</span>
         </Link>
       </div>
 

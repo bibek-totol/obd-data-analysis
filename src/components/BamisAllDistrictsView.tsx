@@ -256,7 +256,7 @@ export default function BamisAllDistrictsView({
         {/* 5 KPI Cards Grid */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))',
           gap: '12px'
         }}>
           {/* KPI 1: Total Districts */}
@@ -625,7 +625,7 @@ export default function BamisAllDistrictsView({
         /* Cards Grid View */
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(330px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))',
           gap: '16px'
         }}>
           {filteredDistricts.map((z) => {
