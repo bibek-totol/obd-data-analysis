@@ -16,14 +16,16 @@ import {
   Wind,
   Droplets,
   Cloud,
-  Layers,
-  FileText,
   Search,
   Sparkles,
   Info,
-  Compass
+  Compass,
+  LayoutGrid,
+  MapPin
 } from 'lucide-react';
 import { BAMIS_DISTRICTS, BamisBulletinData, BamisDistrict } from '@/lib/bamis-client';
+import BamisAllDistrictsView from './BamisAllDistrictsView';
+import { BamisAllDistrictsResponse } from '@/lib/bamis-all-districts';
 
 interface BamisSectionProps {
   onRegisterReload?: (reloadFn: () => void) => void;
@@ -49,40 +51,91 @@ export default function BamisSection({
   onLoadingChange,
   onLastReloadTimeChange
 }: BamisSectionProps) {
+  // View Mode: 'all' displays all 64 zillas in one section (Default); 'single' displays single zilla deep bulletin
+  const [viewMode, setViewMode] = useState<'all' | 'single'>('all');
+
+  // Location & Language States
   const [selectedDistrictId, setSelectedDistrictId] = useState<string>('57'); // Chattogram by default
   const [lang, setLang] = useState<'bn' | 'en'>('bn');
-  const [viewFormat, setViewFormat] = useState<'dashboard' | 'official'>('dashboard');
   const [weatherTab, setWeatherTab] = useState<'forecast' | 'past'>('forecast');
+
+  // All 64 Districts Data State
+  const [allDistrictsData, setAllDistrictsData] = useState<BamisAllDistrictsResponse | null>(null);
+  const [isLoadingAll, setIsLoadingAll] = useState<boolean>(true);
+
+  // Single District Data State
   const [bulletinData, setBulletinData] = useState<BamisBulletinData | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoadingSingle, setIsLoadingSingle] = useState<boolean>(false);
+
   const [lastUpdated, setLastUpdated] = useState<string>('');
-  const [districtSearch, setDistrictSearch] = useState<string>('');
   const [copiedCategory, setCopiedCategory] = useState<string | null>(null);
   const [copiedAll, setCopiedAll] = useState<boolean>(false);
 
   // Restore state from sessionStorage on mount
   useEffect(() => {
     try {
+      const savedMode = sessionStorage.getItem('bamis_view_mode') as 'all' | 'single' | null;
+      if (savedMode) setViewMode(savedMode);
+
       const savedDistrict = sessionStorage.getItem('bamis_selected_district');
       const savedLang = sessionStorage.getItem('bamis_lang') as 'bn' | 'en' | null;
-      const savedFormat = sessionStorage.getItem('bamis_format') as 'dashboard' | 'official' | null;
       if (savedDistrict) setSelectedDistrictId(savedDistrict);
       if (savedLang) setLang(savedLang);
-      if (savedFormat) setViewFormat(savedFormat);
 
-      const savedData = sessionStorage.getItem(`bamis_data_${savedDistrict || '57'}_${savedLang || 'bn'}`);
-      if (savedData) {
-        const parsed = JSON.parse(savedData);
-        setBulletinData(parsed);
-        setIsLoading(false);
+      // Restore cached all districts data
+      const cachedAll = sessionStorage.getItem(`bamis_all_districts_${savedLang || 'bn'}`);
+      if (cachedAll) {
+        const parsed = JSON.parse(cachedAll);
+        if (parsed && parsed.districts && parsed.districts.length > 0) {
+          setAllDistrictsData(parsed);
+          setIsLoadingAll(false);
+        }
+      }
+
+      // Restore cached single district data
+      const savedSingle = sessionStorage.getItem(`bamis_data_${savedDistrict || '57'}_${savedLang || 'bn'}`);
+      if (savedSingle) {
+        const parsedSingle = JSON.parse(savedSingle);
+        setBulletinData(parsedSingle);
       }
     } catch (e) {
       // Ignore sessionStorage errors
     }
   }, []);
 
+  // 1. Fetch All 64 Districts Data
+  const loadAllDistricts = async (currentLang: 'bn' | 'en', forceReload: boolean = false) => {
+    setIsLoadingAll(true);
+    onLoadingChange?.(true);
+
+    try {
+      const url = `/api/bamis/all-districts?lang=${currentLang}${forceReload ? '&forceReload=true' : ''}`;
+      const res = await fetch(url);
+      const json = await res.json();
+
+      if (json.status === 'success' && json.data) {
+        setAllDistrictsData(json.data);
+        const timeNow = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+        setLastUpdated(timeNow);
+        onLastReloadTimeChange?.(timeNow);
+
+        try {
+          sessionStorage.setItem(`bamis_all_districts_${currentLang}`, JSON.stringify(json.data));
+        } catch (e) {
+          // ignore
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load BAMIS all districts:', err);
+    } finally {
+      setIsLoadingAll(false);
+      onLoadingChange?.(false);
+    }
+  };
+
+  // 2. Fetch Single District Bulletin Data
   const loadBulletin = async (districtId: string, currentLang: 'bn' | 'en', forceReload: boolean = false) => {
-    setIsLoading(true);
+    setIsLoadingSingle(true);
     onLoadingChange?.(true);
 
     try {
@@ -107,7 +160,7 @@ export default function BamisSection({
     } catch (err) {
       console.error('Failed to load BAMIS bulletin:', err);
     } finally {
-      setIsLoading(false);
+      setIsLoadingSingle(false);
       onLoadingChange?.(false);
     }
   };
@@ -116,22 +169,28 @@ export default function BamisSection({
   useEffect(() => {
     if (onRegisterReload) {
       onRegisterReload(() => {
-        loadBulletin(selectedDistrictId, lang, true);
+        if (viewMode === 'all') {
+          loadAllDistricts(lang, true);
+        } else {
+          loadBulletin(selectedDistrictId, lang, true);
+        }
       });
     }
-  }, [selectedDistrictId, lang, onRegisterReload]);
+  }, [viewMode, selectedDistrictId, lang, onRegisterReload]);
 
-  // Load when district or lang changes
+  // Load all districts when lang changes
   useEffect(() => {
-    loadBulletin(selectedDistrictId, lang, false);
-  }, [selectedDistrictId, lang]);
+    loadAllDistricts(lang, false);
+  }, [lang]);
+
+  // Load single district when selectedDistrictId or lang changes
+  useEffect(() => {
+    if (viewMode === 'single') {
+      loadBulletin(selectedDistrictId, lang, false);
+    }
+  }, [selectedDistrictId, lang, viewMode]);
 
   const currentDistrict = BAMIS_DISTRICTS.find(d => d.id === selectedDistrictId) || BAMIS_DISTRICTS[9]; // default 57
-
-  const filteredDistricts = BAMIS_DISTRICTS.filter(d =>
-    d.nameBn.toLowerCase().includes(districtSearch.toLowerCase()) ||
-    d.nameEn.toLowerCase().includes(districtSearch.toLowerCase())
-  );
 
   const copyToClipboard = (text: string, categoryKey?: string) => {
     navigator.clipboard.writeText(text);
@@ -144,15 +203,20 @@ export default function BamisSection({
     }
   };
 
-  // Extract key metrics from forecast table
+  // Extract key metrics from single bulletin forecast table
   const forecastRainRow = bulletinData?.forecastWeather.rows.find(r => r.parameter.includes('বৃষ্টিপাত'));
   const forecastMaxTempRow = bulletinData?.forecastWeather.rows.find(r => r.parameter.includes('সর্বোচ্চ তাপমাত্রা'));
   const forecastMinTempRow = bulletinData?.forecastWeather.rows.find(r => r.parameter.includes('সর্বনিমণ') || r.parameter.includes('সর্বনিম্ন'));
   const forecastHumidityRow = bulletinData?.forecastWeather.rows.find(r => r.parameter.includes('আর্দ্রতা'));
 
+  const isCurrentLoading = viewMode === 'all' ? isLoadingAll : isLoadingSingle;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* 1. Header Banner & DAE Agro Branding */}
+
+      {/* -------------------------------------------------------------
+          1. HEADER BANNER & DAE AGRO BRANDING
+         ------------------------------------------------------------- */}
       <div style={{
         background: 'linear-gradient(135deg, #064e2e 0%, #0c713e 50%, #15803d 100%)',
         borderRadius: '16px',
@@ -219,13 +283,81 @@ export default function BamisSection({
             }}>
               {lang === 'bn' ? 'বাংলাদেশ কৃষি আবহাওয়া তথ্য সেবা (বামিস)' : 'Bangladesh Agro-Meteorological Information Service'}
             </h1>
-
+            <p style={{
+              fontSize: '12px',
+              color: '#dcfce7',
+              margin: 0,
+              fontWeight: 500
+            }}>
+              {lang === 'bn'
+                ? 'কৃষি সম্প্রসারণ অধিদপ্তর (ডিএই) • কৃষি মন্ত্রণালয়, গণপ্রজাতন্ত্রী বাংলাদেশ সরকার'
+                : 'Department of Agricultural Extension (DAE) • Ministry of Agriculture, Govt of Bangladesh'}
+            </p>
           </div>
         </div>
 
-        {/* Right side controls: Upstream link, Reload, Print, Language toggle */}
+        {/* Right side controls: View Switcher, Bilingual Switcher, Reload */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
 
+          {/* View Mode Segmented Switcher */}
+          <div style={{
+            display: 'inline-flex',
+            backgroundColor: 'rgba(0, 0, 0, 0.25)',
+            padding: '3px',
+            borderRadius: '9px',
+            border: '1px solid rgba(255, 255, 255, 0.2)'
+          }}>
+            <button
+              onClick={() => {
+                setViewMode('all');
+                sessionStorage.setItem('bamis_view_mode', 'all');
+              }}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '7px',
+                fontSize: '12px',
+                fontWeight: 700,
+                border: 'none',
+                cursor: 'pointer',
+                backgroundColor: viewMode === 'all' ? '#ffffff' : 'transparent',
+                color: viewMode === 'all' ? '#0c713e' : '#ffffff',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <LayoutGrid size={14} />
+              <span>{lang === 'bn' ? 'সকল জেলা (৬৪)' : 'All 64 Zillas'}</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setViewMode('single');
+                sessionStorage.setItem('bamis_view_mode', 'single');
+                if (!bulletinData) {
+                  loadBulletin(selectedDistrictId, lang, false);
+                }
+              }}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '7px',
+                fontSize: '12px',
+                fontWeight: 700,
+                border: 'none',
+                cursor: 'pointer',
+                backgroundColor: viewMode === 'single' ? '#ffffff' : 'transparent',
+                color: viewMode === 'single' ? '#0c713e' : '#ffffff',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <MapPin size={14} />
+              <span>{lang === 'bn' ? 'একক জেলা' : 'Single Zilla'}</span>
+            </button>
+          </div>
 
           {/* Bilingual Switcher */}
           <div style={{
@@ -277,8 +409,14 @@ export default function BamisSection({
 
           {/* Reload Button */}
           <button
-            onClick={() => loadBulletin(selectedDistrictId, lang, true)}
-            disabled={isLoading}
+            onClick={() => {
+              if (viewMode === 'all') {
+                loadAllDistricts(lang, true);
+              } else {
+                loadBulletin(selectedDistrictId, lang, true);
+              }
+            }}
+            disabled={isCurrentLoading}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -290,393 +428,383 @@ export default function BamisSection({
               borderRadius: '8px',
               fontSize: '12px',
               fontWeight: 700,
-              cursor: isLoading ? 'not-allowed' : 'pointer',
+              cursor: isCurrentLoading ? 'not-allowed' : 'pointer',
               boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
               transition: 'all 0.15s ease'
             }}
-            onMouseEnter={(e) => { if (!isLoading) e.currentTarget.style.backgroundColor = '#f0fdf4'; }}
-            onMouseLeave={(e) => { if (!isLoading) e.currentTarget.style.backgroundColor = '#ffffff'; }}
+            onMouseEnter={(e) => { if (!isCurrentLoading) e.currentTarget.style.backgroundColor = '#f0fdf4'; }}
+            onMouseLeave={(e) => { if (!isCurrentLoading) e.currentTarget.style.backgroundColor = '#ffffff'; }}
           >
-            <RefreshCw size={14} className={isLoading ? 'animate-spin-fast' : ''} />
-            <span>{isLoading ? (lang === 'bn' ? 'লোড হচ্ছে...' : 'Refreshing...') : (lang === 'bn' ? 'তাজা বুলেটিন' : 'Reload Bulletin')}</span>
+            <RefreshCw size={14} className={isCurrentLoading ? 'animate-spin-fast' : ''} />
+            <span>
+              {isCurrentLoading
+                ? (lang === 'bn' ? 'লোড হচ্ছে...' : 'Refreshing...')
+                : (lang === 'bn' ? 'তাজা বুলেটিন' : 'Reload Bulletin')}
+            </span>
           </button>
         </div>
       </div>
 
-      {/* 2. District Selection & Quick Jump Toolbar */}
-      <div style={{
-        backgroundColor: '#ffffff',
-        borderRadius: '14px',
-        padding: '16px 20px',
-        border: '1px solid #e2e8f0',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '14px'
-      }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '14px'
-        }}>
-          {/* Main District Selector */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '13px', fontWeight: 700, color: '#334155' }}>
-              {lang === 'bn' ? 'জেলা নির্বাচন করুন:' : 'Select District:'}
-            </span>
-            <div style={{ position: 'relative', minWidth: '240px' }}>
-              <select
-                id="select-bamis-district"
-                value={selectedDistrictId}
-                onChange={(e) => {
-                  setSelectedDistrictId(e.target.value);
-                  sessionStorage.setItem('bamis_selected_district', e.target.value);
-                }}
-                style={{
-                  width: '100%',
-                  padding: '9px 36px 9px 14px',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  backgroundColor: '#f8fafc',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  color: '#0f172a',
-                  cursor: 'pointer',
-                  appearance: 'none',
-                  outline: 'none',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
-                }}
-              >
-                {BAMIS_DISTRICTS.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.nameEn} ({d.nameBn})
-                  </option>
-                ))}
-              </select>
-              <ChevronDown
-                size={16}
-                style={{
-                  position: 'absolute',
-                  right: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  pointerEvents: 'none',
-                  color: '#64748b'
-                }}
-              />
-            </div>
-
-            <span style={{
-              fontSize: '12px',
-              backgroundColor: '#e8f5f0',
-              color: '#0c713e',
-              padding: '4px 10px',
-              borderRadius: '6px',
-              fontWeight: 700
-            }}>
-              {lang === 'bn' ? currentDistrict.nameBn : currentDistrict.nameEn} জেলা
-            </span>
-          </div>
-
-          {/* View Format Selector & Print Tool */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-            <div style={{
-              display: 'inline-flex',
-              backgroundColor: '#f1f5f9',
-              padding: '3px',
-              borderRadius: '8px',
-              border: '1px solid #e2e8f0'
-            }}>
-              <button
-                onClick={() => {
-                  setViewFormat('dashboard');
-                  sessionStorage.setItem('bamis_format', 'dashboard');
-                }}
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  border: 'none',
-                  cursor: 'pointer',
-                  backgroundColor: viewFormat === 'dashboard' ? '#0c713e' : 'transparent',
-                  color: viewFormat === 'dashboard' ? '#ffffff' : '#64748b',
-                  transition: 'all 0.15s ease',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}
-              >
-                <Layers size={13} />
-                <span>{lang === 'bn' ? 'ইন্টারেক্টিভ ড্যাশবোর্ড' : 'Interactive View'}</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  setViewFormat('official');
-                  sessionStorage.setItem('bamis_format', 'official');
-                }}
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  border: 'none',
-                  cursor: 'pointer',
-                  backgroundColor: viewFormat === 'official' ? '#0c713e' : 'transparent',
-                  color: viewFormat === 'official' ? '#ffffff' : '#64748b',
-                  transition: 'all 0.15s ease',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}
-              >
-                <FileText size={13} />
-                <span>{lang === 'bn' ? 'সরকারি অফিশিয়াল ফরম্যাট' : 'Official Paper Format'}</span>
-              </button>
-            </div>
-
-            {/* Print Button */}
+      {/* -------------------------------------------------------------
+          2. VIEW MODE ROUTING: ALL ZILLAS VS SINGLE ZILLA
+         ------------------------------------------------------------- */}
+      {viewMode === 'all' ? (
+        /* ALL 64 ZILLAS IN ONE SECTION */
+        <BamisAllDistrictsView
+          data={allDistrictsData!}
+          isLoading={isLoadingAll && !allDistrictsData}
+          lang={lang}
+          onSelectDistrict={(distId) => {
+            setSelectedDistrictId(distId);
+            setViewMode('single');
+            sessionStorage.setItem('bamis_selected_district', distId);
+            sessionStorage.setItem('bamis_view_mode', 'single');
+            loadBulletin(distId, lang, false);
+          }}
+          onReload={() => loadAllDistricts(lang, true)}
+        />
+      ) : (
+        /* SINGLE ZILLA DEEP BULLETIN VIEW */
+        <>
+          {/* Return to All Zillas Navigation Bar */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
+            padding: '12px 18px',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+          }}>
             <button
-              onClick={() => window.print()}
-              title="Print official agromet bulletin"
+              onClick={() => {
+                setViewMode('all');
+                sessionStorage.setItem('bamis_view_mode', 'all');
+              }}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px',
-                padding: '7px 14px',
-                backgroundColor: '#ffffff',
-                border: '1px solid #cbd5e1',
+                gap: '8px',
+                padding: '8px 16px',
+                backgroundColor: '#e8f5f0',
+                border: '1px solid #a7f3d0',
                 borderRadius: '8px',
                 fontSize: '12px',
-                fontWeight: 600,
-                color: '#334155',
+                fontWeight: 700,
+                color: '#0c713e',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease'
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#f8fafc';
-                e.currentTarget.style.borderColor = '#0c713e';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#ffffff';
-                e.currentTarget.style.borderColor = '#cbd5e1';
-              }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#dcfce7'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#e8f5f0'; }}
             >
-              <Printer size={14} />
-              <span>{lang === 'bn' ? 'প্রিন্ট' : 'Print'}</span>
+              <LayoutGrid size={15} />
+              <span>{lang === 'bn' ? '← সকল ৬৪ জেলার তথ্য ও তালিকায় ফিরে যান' : '← Back to All 64 Districts Overview'}</span>
             </button>
+
+            <span style={{ fontSize: '13px', color: '#475569', fontWeight: 600 }}>
+              {lang === 'bn'
+                ? <>বর্তমান নির্বাচিত জেলা: <strong style={{ color: '#0c713e' }}>{currentDistrict.nameBn}</strong></>
+                : <>Currently Viewing: <strong style={{ color: '#0c713e' }}>{currentDistrict.nameEn}</strong> District</>}
+            </span>
           </div>
-        </div>
 
-        {/* Quick District Jump Pills */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          flexWrap: 'wrap',
-          borderTop: '1px solid #f1f5f9',
-          paddingTop: '10px'
-        }}>
-
-        </div>
-      </div>
-
-      {/* Loading Spinner */}
-      {isLoading && !bulletinData ? (
-        <div style={{
-          padding: '80px 20px',
-          textAlign: 'center',
-          backgroundColor: '#ffffff',
-          borderRadius: '16px',
-          border: '1px solid #e2e8f0'
-        }}>
+          {/* District Selection & Quick Jump Toolbar */}
           <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '56px',
-            height: '56px',
-            borderRadius: '50%',
-            backgroundColor: '#e8f5f0',
-            color: '#0c713e',
-            marginBottom: '16px'
+            backgroundColor: '#ffffff',
+            borderRadius: '14px',
+            padding: '16px 20px',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '14px'
           }}>
-            <RefreshCw size={28} className="animate-spin-fast" />
-          </div>
-          <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>
-            {lang === 'bn' ? `${currentDistrict.nameBn} জেলার কৃষি আবহাওয়া বুলেটিন আনা হচ্ছে...` : `Fetching Agromet Bulletin for ${currentDistrict.nameEn}...`}
-          </h3>
-          <p style={{ fontSize: '13px', color: '#64748b' }}>
-            {lang === 'bn'
-              ? 'কৃষি সম্প্রসারণ অধিদপ্তর (বামিস) হতে সর্বশেষ আবহাওয়া পরিস্থিতি এবং ফসলভিত্তিক পরামর্শ সংগ্রহ করা হচ্ছে।'
-              : 'Connecting to DAE BAMIS servers for real-time agromet observations and crop advisories.'}
-          </p>
-        </div>
-      ) : bulletinData ? (
-        <>
-          {/* 3. KPI Telemetry Summary Banner */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
-            gap: '16px'
-          }}>
-            {/* Card 1: Bulletin Meta */}
             <div style={{
-              backgroundColor: '#ffffff',
-              borderRadius: '12px',
-              padding: '18px 20px',
-              border: '1px solid #e2e8f0',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
               display: 'flex',
               alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
               gap: '14px'
             }}>
+              {/* Main District Selector */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: '#334155' }}>
+                  {lang === 'bn' ? 'অন্য জেলা নির্বাচন করুন:' : 'Change District:'}
+                </span>
+                <div style={{ position: 'relative', minWidth: '240px' }}>
+                  <select
+                    id="select-bamis-district"
+                    value={selectedDistrictId}
+                    onChange={(e) => {
+                      setSelectedDistrictId(e.target.value);
+                      sessionStorage.setItem('bamis_selected_district', e.target.value);
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '9px 36px 9px 14px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      backgroundColor: '#f8fafc',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      color: '#0f172a',
+                      cursor: 'pointer',
+                      appearance: 'none',
+                      outline: 'none',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+                    }}
+                  >
+                    {BAMIS_DISTRICTS.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.nameEn} ({d.nameBn})
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown
+                    size={16}
+                    style={{
+                      position: 'absolute',
+                      right: '12px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      pointerEvents: 'none',
+                      color: '#64748b'
+                    }}
+                  />
+                </div>
+
+                <span style={{
+                  fontSize: '12px',
+                  backgroundColor: '#e8f5f0',
+                  color: '#0c713e',
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  fontWeight: 700
+                }}>
+                  {lang === 'bn' ? currentDistrict.nameBn : currentDistrict.nameEn} জেলা
+                </span>
+              </div>
+
+              {/* Actions: Print */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <button
+                  onClick={() => window.print()}
+                  title="Print official agromet bulletin"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '7px 14px',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: '#334155',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f8fafc';
+                    e.currentTarget.style.borderColor = '#0c713e';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#ffffff';
+                    e.currentTarget.style.borderColor = '#cbd5e1';
+                  }}
+                >
+                  <Printer size={14} />
+                  <span>{lang === 'bn' ? 'প্রিন্ট' : 'Print'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Quick District Jump Pills */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              flexWrap: 'wrap',
+              borderTop: '1px solid #f1f5f9',
+              paddingTop: '10px'
+            }}>
+              <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>
+                {lang === 'bn' ? 'প্রধান জেলাসমূহ:' : 'Major Districts:'}
+              </span>
+              {MAJOR_DISTRICTS.map((d) => {
+                const isActive = d.id === selectedDistrictId;
+                return (
+                  <button
+                    key={d.id}
+                    onClick={() => {
+                      setSelectedDistrictId(d.id);
+                      sessionStorage.setItem('bamis_selected_district', d.id);
+                    }}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      fontWeight: isActive ? 700 : 500,
+                      border: isActive ? '1px solid #0c713e' : '1px solid #e2e8f0',
+                      backgroundColor: isActive ? '#e8f5f0' : '#ffffff',
+                      color: isActive ? '#0c713e' : '#475569',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    {lang === 'bn' ? d.labelBn : d.labelEn}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Loading Spinner for Single District */}
+          {isLoadingSingle && !bulletinData ? (
+            <div style={{
+              padding: '80px 20px',
+              textAlign: 'center',
+              backgroundColor: '#ffffff',
+              borderRadius: '16px',
+              border: '1px solid #e2e8f0'
+            }}>
               <div style={{
-                width: '42px',
-                height: '42px',
-                borderRadius: '10px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '56px',
+                height: '56px',
+                borderRadius: '50%',
                 backgroundColor: '#e8f5f0',
                 color: '#0c713e',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
+                marginBottom: '16px'
               }}>
-                <FileText size={22} />
+                <RefreshCw size={28} className="animate-spin-fast" />
               </div>
-              <div>
-                <div style={{ fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 700 }}>
-                  {lang === 'bn' ? 'বুলেটিন নং ও তারিখ' : 'Bulletin No & Date'}
-                </div>
-                <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
-                  {lang === 'bn' ? `বুলেটিন নং ${bulletinData.bulletinNo}` : `Bulletin No ${bulletinData.bulletinNo}`}
-                </div>
-                <div style={{ fontSize: '12px', color: '#475569', fontWeight: 500 }}>
-                  {bulletinData.bulletinDate}
-                </div>
-              </div>
+              <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>
+                {lang === 'bn' ? `${currentDistrict.nameBn} জেলার কৃষি আবহাওয়া বুলেটিন আনা হচ্ছে...` : `Fetching Agromet Bulletin for ${currentDistrict.nameEn}...`}
+              </h3>
+              <p style={{ fontSize: '13px', color: '#64748b' }}>
+                {lang === 'bn'
+                  ? 'কৃষি সম্প্রসারণ অধিদপ্তর (বামিস) হতে সর্বশেষ আবহাওয়া পরিস্থিতি এবং ফসলভিত্তিক পরামর্শ সংগ্রহ করা হচ্ছে।'
+                  : 'Connecting to DAE BAMIS servers for real-time agromet observations and crop advisories.'}
+              </p>
             </div>
-
-            {/* Card 2: Validity Window */}
-            <div style={{
-              backgroundColor: '#ffffff',
-              borderRadius: '12px',
-              padding: '18px 20px',
-              border: '1px solid #e2e8f0',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '14px'
-            }}>
+          ) : bulletinData ? (
+            <>
+              {/* Single District KPI Telemetry Banner */}
               <div style={{
-                width: '42px',
-                height: '42px',
-                borderRadius: '10px',
-                backgroundColor: '#eff6ff',
-                color: '#2563eb',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
+                gap: '16px'
               }}>
-                <Calendar size={22} />
-              </div>
-              <div>
-                <div style={{ fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 700 }}>
-                  {lang === 'bn' ? 'কার্যকর মেয়াদকাল' : 'Validity Window'}
-                </div>
-                <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
-                  {bulletinData.forecastWeather.dates.length > 0
-                    ? `${bulletinData.forecastWeather.dates[0]} — ${bulletinData.forecastWeather.dates[bulletinData.forecastWeather.dates.length - 1]}`
-                    : '৫ দিনের পূর্বাভাস'}
-                </div>
-                <div style={{ fontSize: '12px', color: '#2563eb', fontWeight: 600 }}>
-                  {lang === 'bn' ? 'আগামী ৫ দিনের পূর্বাভাস' : '5-Day Outlook'}
-                </div>
-              </div>
-            </div>
+                {/* Card 1: Bulletin Meta */}
+                <div style={{
+                  backgroundColor: '#ffffff',
+                  borderRadius: '12px',
+                  padding: '18px 20px',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '14px'
+                }}>
 
-            {/* Card 3: Rain Outlook */}
-            <div style={{
-              backgroundColor: '#ffffff',
-              borderRadius: '12px',
-              padding: '18px 20px',
-              border: '1px solid #e2e8f0',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '14px'
-            }}>
-              <div style={{
-                width: '42px',
-                height: '42px',
-                borderRadius: '10px',
-                backgroundColor: '#e0f2fe',
-                color: '#0284c7',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
-              }}>
-                <CloudRain size={22} />
-              </div>
-              <div>
-                <div style={{ fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 700 }}>
-                  {lang === 'bn' ? 'বৃষ্টিপাত পূর্বাভাস' : 'Rainfall Outlook'}
+                  <div>
+                    <div style={{ fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 700 }}>
+                      {lang === 'bn' ? 'বুলেটিন নং ও তারিখ' : 'Bulletin No & Date'}
+                    </div>
+                    <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
+                      {lang === 'bn' ? `বুলেটিন নং ${bulletinData.bulletinNo}` : `Bulletin No ${bulletinData.bulletinNo}`}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#475569', fontWeight: 500 }}>
+                      {bulletinData.bulletinDate}
+                    </div>
+                  </div>
                 </div>
-                <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
-                  {forecastRainRow ? forecastRainRow.range : '০.০ মি.মি'}
-                </div>
-                <div style={{ fontSize: '12px', color: '#64748b' }}>
-                  {lang === 'bn' ? 'পরবর্তী ৫ দিনের মোট' : 'Next 5-day span'}
-                </div>
-              </div>
-            </div>
 
-            {/* Card 4: Temperature Range */}
-            <div style={{
-              backgroundColor: '#ffffff',
-              borderRadius: '12px',
-              padding: '18px 20px',
-              border: '1px solid #e2e8f0',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '14px'
-            }}>
-              <div style={{
-                width: '42px',
-                height: '42px',
-                borderRadius: '10px',
-                backgroundColor: '#fff7ed',
-                color: '#ea580c',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
-              }}>
-                <Thermometer size={22} />
-              </div>
-              <div>
-                <div style={{ fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 700 }}>
-                  {lang === 'bn' ? 'তাপমাত্রা পরিসীমা' : 'Temperature Span'}
-                </div>
-                <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
-                  Max: {forecastMaxTempRow?.range || '২৮.৪-৩৩.৪°C'}
-                </div>
-                <div style={{ fontSize: '12px', color: '#64748b' }}>
-                  Min: {forecastMinTempRow?.range || '২১.৬-২৪.৮°C'}
-                </div>
-              </div>
-            </div>
-          </div>
+                {/* Card 2: Validity Window */}
+                <div style={{
+                  backgroundColor: '#ffffff',
+                  borderRadius: '12px',
+                  padding: '18px 20px',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '14px'
+                }}>
 
-          {/* 4. Main Body: Either Interactive View OR Official Paper View */}
-          {viewFormat === 'dashboard' ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  <div>
+                    <div style={{ fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 700 }}>
+                      {lang === 'bn' ? 'কার্যকর মেয়াদকাল' : 'Validity Window'}
+                    </div>
+                    <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
+                      {bulletinData.forecastWeather.dates.length > 0
+                        ? `${bulletinData.forecastWeather.dates[0]} — ${bulletinData.forecastWeather.dates[bulletinData.forecastWeather.dates.length - 1]}`
+                        : '৫ দিনের পূর্বাভাস'}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#2563eb', fontWeight: 600 }}>
+                      {lang === 'bn' ? 'আগামী ৫ দিনের পূর্বাভাস' : '5-Day Outlook'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card 3: Rain Outlook */}
+                <div style={{
+                  backgroundColor: '#ffffff',
+                  borderRadius: '12px',
+                  padding: '18px 20px',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '14px'
+                }}>
+
+                  <div>
+                    <div style={{ fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 700 }}>
+                      {lang === 'bn' ? 'বৃষ্টিপাত পূর্বাভাস' : 'Rainfall Outlook'}
+                    </div>
+                    <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
+                      {forecastRainRow ? forecastRainRow.range : '০.০ মি.মি'}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#64748b' }}>
+                      {lang === 'bn' ? 'পরবর্তী ৫ দিনের মোট' : 'Next 5-day span'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card 4: Temperature Range */}
+                <div style={{
+                  backgroundColor: '#ffffff',
+                  borderRadius: '12px',
+                  padding: '18px 20px',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '14px'
+                }}>
+
+                  <div>
+                    <div style={{ fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 700 }}>
+                      {lang === 'bn' ? 'তাপমাত্রা পরিসীমা' : 'Temperature Span'}
+                    </div>
+                    <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
+                      Max: {forecastMaxTempRow?.range || '২৮.৪-৩৩.৪°C'}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#64748b' }}>
+                      Min: {forecastMinTempRow?.range || '২১.৬-২৪.৮°C'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Weather Data Tables Section */}
               <div style={{
                 backgroundColor: '#ffffff',
@@ -700,7 +828,11 @@ export default function BamisSection({
                     <h2 style={{ fontSize: '17px', fontWeight: 800, color: '#0f172a', margin: '0 0 4px 0' }}>
                       {weatherTab === 'forecast' ? bulletinData.forecastWeather.heading : bulletinData.pastWeather.heading}
                     </h2>
-
+                    <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>
+                      {weatherTab === 'forecast'
+                        ? (lang === 'bn' ? 'বাংলাদেশ আবহাওয়া অধিদপ্তর (বিএমডি) হতে প্রাপ্ত আগামী ৫ দিনের পূর্বাভাস' : 'BMD-derived 5-day predictive meteorological telemetry')
+                        : (lang === 'bn' ? 'বিগত ৪ দিনের প্রত্যক্ষ কৃষি পর্যবেক্ষণ উপাত্ত' : 'Past 4 days ground observed agromet telemetry')}
+                    </p>
                   </div>
 
                   <div style={{
@@ -811,37 +943,37 @@ export default function BamisSection({
                                 key={rIdx}
                                 style={{
                                   backgroundColor: rIdx % 2 === 0 ? '#ffffff' : '#fcfdfd',
-                                  transition: 'background-color 0.15s ease'
+                                  transition: 'background-color 0.1s ease'
                                 }}
-                                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f1f5f9'; }}
+                                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f1f8f5'; }}
                                 onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = rIdx % 2 === 0 ? '#ffffff' : '#fcfdfd'; }}
                               >
                                 <td style={{
-                                  padding: '14px 16px',
+                                  padding: '12px 16px',
                                   borderBottom: '1px solid #f1f5f9',
                                   fontWeight: 600,
-                                  color: '#1e293b',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '8px'
+                                  color: '#1e293b'
                                 }}>
-                                  {isRain && <CloudRain size={16} color="#0284c7" />}
-                                  {isMaxTemp && <Thermometer size={16} color="#ea580c" />}
-                                  {isMinTemp && <Thermometer size={16} color="#0284c7" />}
-                                  {isHumidity && <Droplets size={16} color="#0d9488" />}
-                                  {isWind && <Wind size={16} color="#6366f1" />}
-                                  <span>{row.parameter}</span>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    {isRain ? <CloudRain size={16} color="#0284c7" /> :
+                                      isMaxTemp ? <Thermometer size={16} color="#ea580c" /> :
+                                        isMinTemp ? <Thermometer size={16} color="#0284c7" /> :
+                                          isHumidity ? <Droplets size={16} color="#0891b2" /> :
+                                            isWind ? <Wind size={16} color="#475569" /> :
+                                              <Cloud size={16} color="#64748b" />}
+                                    <span>{row.parameter}</span>
+                                  </div>
                                 </td>
 
                                 {row.values.map((val, vIdx) => (
                                   <td
                                     key={vIdx}
                                     style={{
-                                      padding: '14px',
+                                      padding: '12px 14px',
                                       borderBottom: '1px solid #f1f5f9',
                                       textAlign: 'center',
-                                      color: isRain && val !== '০.০' && val !== '0.0' ? '#0369a1' : '#334155',
-                                      fontWeight: isRain && val !== '০.০' ? 800 : 500
+                                      color: isRain && val !== '০.০' && val !== '0.0' ? '#0284c7' : '#334155',
+                                      fontWeight: isRain && val !== '০.০' && val !== '0.0' ? 700 : 500
                                     }}
                                   >
                                     {val}
@@ -849,12 +981,12 @@ export default function BamisSection({
                                 ))}
 
                                 <td style={{
-                                  padding: '14px 16px',
+                                  padding: '12px 16px',
                                   borderBottom: '1px solid #f1f5f9',
                                   textAlign: 'center',
                                   fontWeight: 700,
                                   color: '#0c713e',
-                                  backgroundColor: 'rgba(232, 245, 240, 0.4)'
+                                  backgroundColor: '#f6fbf8'
                                 }}>
                                   {row.range}
                                 </td>
@@ -887,7 +1019,18 @@ export default function BamisSection({
                   paddingBottom: '16px'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-
+                    <div style={{
+                      width: '42px',
+                      height: '42px',
+                      borderRadius: '10px',
+                      backgroundColor: '#e8f5f0',
+                      color: '#0c713e',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <Sprout size={22} />
+                    </div>
                     <div>
                       <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', margin: 0 }}>
                         {lang === 'bn' ? 'ফসল ও কৃষি আবহাওয়া বিষয়ক পরামর্শমালা' : 'Crop & Agro-Meteorological Advisories'}
@@ -939,7 +1082,6 @@ export default function BamisSection({
                     const isCattle = advisory.category.includes('পশু');
                     const isPoultry = advisory.category.includes('হাঁসমুরগী');
                     const isFish = advisory.category.includes('মৎস্য');
-                    const isPotato = advisory.category.includes('আলু');
 
                     const badgeColor = isRice
                       ? '#0c713e'
@@ -1070,95 +1212,10 @@ export default function BamisSection({
                   })}
                 </div>
               </div>
-            </div>
-          ) : (
-            /* Official Paper View (Styled like official Government Bulletin) */
-            <div style={{
-              backgroundColor: '#ffffff',
-              borderRadius: '16px',
-              padding: '40px',
-              border: '1px solid #cbd5e1',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
-              color: '#000000',
-              fontFamily: "'Hind Siliguri', 'Times New Roman', serif"
-            }}>
-              {/* Official Header */}
-              <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#000000', marginBottom: '8px' }}>
-                  {bulletinData.title}
-                </h2>
-                <div style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  color: '#475569'
-                }}>
-                  <span>বুলেটিন নং: {bulletinData.bulletinNo}</span>
-                  <span>•</span>
-                  <span>তারিখ: {bulletinData.bulletinDate}</span>
-                  <span>•</span>
-                  <span>{bulletinData.validityPeriod}</span>
-                </div>
-              </div>
-
-              {/* Research Logos Ribbon */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '16px',
-                flexWrap: 'wrap',
-                padding: '16px',
-                borderTop: '1px solid #e2e8f0',
-                borderBottom: '1px solid #e2e8f0',
-                marginBottom: '30px'
-              }}>
-                <img src="https://www.bamis.gov.bd/assets/img/logo.png" alt="Govt Logo" style={{ height: '48px' }} />
-                <img src="https://www.bamis.gov.bd/assets/img/dae.png" alt="DAE Logo" style={{ height: '48px' }} />
-                <img src="https://www.bamis.gov.bd/res/public/weather_table/bari.jpg" alt="BARI" style={{ height: '36px' }} />
-                <img src="https://www.bamis.gov.bd/res/public/weather_table/brri.jpg" alt="BRRI" style={{ height: '36px' }} />
-                <img src="https://www.bamis.gov.bd/res/public/weather_table/livestock.jpg" alt="Live Stock" style={{ height: '36px' }} />
-                <img src="https://www.bamis.gov.bd/res/public/weather_table/fish.jpg" alt="Fisheries" style={{ height: '36px' }} />
-                <img src="https://www.bamis.gov.bd/res/public/weather_table/bjri.jpg" alt="BJRI" style={{ height: '36px' }} />
-                <img src="https://www.bamis.gov.bd/res/public/weather_table/bsri.jpg" alt="BSRI" style={{ height: '36px' }} />
-                <img src="https://www.bamis.gov.bd/res/public/weather_table/bwmri.jpg" alt="BWMRI" style={{ height: '36px' }} />
-              </div>
-
-              {/* Injected HTML or rendered tables */}
-              {bulletinData.rawHtml ? (
-                <div
-                  dangerouslySetInnerHTML={{ __html: bulletinData.rawHtml }}
-                  style={{
-                    overflowX: 'auto',
-                    fontSize: '13px'
-                  }}
-                />
-              ) : null}
-
-              {/* Advisories printed list */}
-              <div style={{ marginTop: '30px', borderTop: '2px solid #000000', paddingTop: '20px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: 800, marginBottom: '16px', textAlign: 'center' }}>
-                  কৃষি ভিত্তিক পরামর্শমালা (কৃষি সম্প্রসারণ অধিদপ্তর)
-                </h3>
-                {bulletinData.advisories.map((adv, idx) => (
-                  <div key={idx} style={{ marginBottom: '16px' }}>
-                    <p style={{ fontWeight: 800, fontSize: '14px', margin: '0 0 6px 0' }}>
-                      {adv.category}
-                    </p>
-                    <ul style={{ margin: 0, paddingLeft: '20px' }}>
-                      {adv.items.map((it, iIdx) => (
-                        <li key={iIdx} style={{ fontSize: '13px', lineHeight: 1.6 }}>{it}</li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+            </>
+          ) : null}
         </>
-      ) : null}
+      )}
     </div>
   );
 }

@@ -82,7 +82,10 @@ Data is harvested directly from the NLAS backend services (`https://nlas.dls.gov
 - **`src/app/api/bmd/district-forecast/route.ts`**: API endpoint for BMD district-wide weather aggregation across upazilas (`/api/bmd/district-forecast?districtCode=<code\>&lang=<en|bn\>`).
 - **`src/components/BmdSection.tsx`**: BMD Portal container managing bilingual state ('bn'/'en'), segmented view switcher ('all' / 'single'), cascading station lookups, and deep inspection.
 - **`src/lib/bamis-client.ts`**: BAMIS client library, 64-district mapping, HTML table & advisory parser, 15-minute SWR caching, and offline fallback.
-- **`src/components/BamisSection.tsx`**: Full BAMIS portal module with 64-district selector, quick jump pills, bilingual toggle, KPI telemetry cards, dual format switcher (Interactive Dashboard & Official Govt Document), and print support.
+- **`src/lib/bamis-all-districts.ts`**: Dedicated BAMIS 64-district aggregation client, division mappings (8 divisions), telemetry parser, in-memory caching, and national metric summaries.
+- **`src/components/BamisAllDistrictsView.tsx`**: Full 64-Zilla agromet overview module featuring National KPI Telemetry cards, division filter pills, real-time search, 5-way sorting, cards grid view with rain badges and advisory tags, sortable comparison table, and one-click drilldown into single zilla bulletins.
+- **`src/components/BamisSection.tsx`**: Main BAMIS portal container managing segmented view switching ('all' / 'single'), bilingual support ('bn'/'en'), live synchronization, return navigation, and deep inspection.
+- **`src/app/api/bamis/all-districts/route.ts`**: API route handler for all 64 districts agromet summary data (`/api/bamis/all-districts?lang=<en|bn>&forceReload=true`).
 - **`src/app/api/bamis/bulletin/route.ts`**: Next.js route handler for district agromet bulletins (`/api/bamis/bulletin?districtId=<id>&lang=<en|bn>`).
 - **`src/app/api/bamis/districts/route.ts`**: Next.js route handler for all 64 BAMIS districts.
 - **`src/app/page.tsx`**: Main dashboard controller managing state, cascading fetches, manual refresh, active section toggling, and view mode switching.
@@ -115,18 +118,22 @@ Data is harvested directly from the NLAS backend services (`https://nlas.dls.gov
      - Bilingual toggle (`English` / `বাংলা`) with Bengali numerals, weekdays, and weather terminology.
      - Technical attribution to Bangladesh Meteorological Department (BMD), RIMES, and Govt of Bangladesh.
 3. **BAMIS Portal (DAE)** (`https://www.bamis.gov.bd/`):
-   - **District Agromet Bulletin Section** (`bulletin/district/current/:districtId`):
+   - **District Agromet Advisory Bulletin Section**:
      - Official bulletins from Department of Agricultural Extension (DAE) & Ministry of Agriculture.
-     - **64 District Coverage**: Complete district list mapped with official BAMIS IDs (0 to 66), plus quick jump chips for all administrative divisions.
-     - **Dual View Modes**:
-       - **Interactive Agromet Dashboard**:
-         - 4 KPI summary cards: Bulletin No & Date, Validity Period, Rainfall Range, Temperature Span.
-         - Sub-tab switcher between **Past 4 Days Observed Weather** and **Next 5 Days BMD Forecast**.
-         - High-contrast structured tables with parameter badges (Rain, Max/Min Temp, Humidity, Wind Speed & Direction, Cloud Cover).
-         - Categorized Crop & Agricultural Advisory Cards (Aman Rice, Vegetables, Horticultural Crops, Livestock, Poultry, Fisheries, Potato) with one-click copy and custom category palettes.
-       - **Official Govt Document View**:
-         - Authentic government paper-style bulletin layout with National Emblem, DAE seals, research institute logos (BARI, BRRI, Livestock, Fisheries, BJRI, BSRI, BWMRI), and print-ready format.
-     - **Toolbar Actions**: One-click Print (`window.print()`), Copy All Advisories, and live "Reload Latest BAMIS Feed" with SWR 15-minute background caching.
-     - Bilingual toggle (`English` / `বাংলা`).
+     - **All 64 Zillas in One Section (`BamisAllDistrictsView.tsx`)**:
+       - National Agromet KPI Telemetry banner: 64 districts across 8 divisions, temperature spectrum (min/max/average), rainfall forecast alert count, average relative humidity, and active bulletin window.
+       - Interactive Division Filter Chips: Instant filtering by division (All, Dhaka, Chattogram, Rajshahi, Khulna, Barishal, Sylhet, Rangpur, Mymensingh) with district count badges.
+       - Real-time Search: Live search across district names (Bengali & English), divisions, and crop types.
+       - 5-Way Sorting: District Name (A-Z / ক-হ), Highest Max Temp, Lowest Min Temp, Highest Rain Outlook, Most Advisories.
+       - Dual Layouts:
+         - **Cards Grid View**: Individual cards for each zilla featuring rain forecast badge, 5-day rain amount, max/min temperature range, humidity, wind speed & direction, crop advisory tags, primary advisory excerpt, and "View Full Bulletin" button.
+         - **Comparison Table View**: High-density sortable comparison table with all 64 districts and key meteorological & agricultural indicators.
+       - Seamless Transition: Clicking any zilla smoothly drills down into its detailed single-district bulletin.
+     - **Single Zilla Deep Bulletin View**:
+       - Prominent return button: `← সকল ৬৪ জেলার তথ্য ও তালিকায় ফিরে যান` (Back to All 64 Districts).
+       - Interactive Agromet Dashboard with 4 KPI summary cards, Sub-tab switcher between Past 4 Days Observed Weather and Next 5 Days BMD Forecast tables.
+       - Categorized Crop & Agricultural Advisory Cards (Aman Rice, Boro Rice, Vegetables, Fruit Crops, Livestock, Poultry, Fisheries, Potato) with one-click copy.
+       - Print view support (`window.print()`).
+     - Bilingual toggle (`English` / `বাংলা`) with Bengali numerals and translations.
 
 

@@ -79,7 +79,7 @@ export default function BmdSection({
           setIsLoadingDistrict(false);
         }
       }
-    } catch {}
+    } catch { }
   }, [selectedDistrict, lang]);
 
   const selectedUpazilaRef = useRef(selectedUpazila);
@@ -135,7 +135,7 @@ export default function BmdSection({
             return;
           }
         }
-      } catch {}
+      } catch { }
     }
 
     setIsLoadingForecast(true);
@@ -162,7 +162,7 @@ export default function BmdSection({
       clientCacheRef.current[cacheKey] = json.data;
       try {
         sessionStorage.setItem(`bmd_forecast_${cacheKey}`, JSON.stringify(json.data));
-      } catch {}
+      } catch { }
 
       const now = new Date();
       const timeStr = now.toLocaleTimeString('en-US', {
@@ -205,7 +205,7 @@ export default function BmdSection({
         setDistrictForecastData(json.data);
         try {
           sessionStorage.setItem(`bmd_district_${districtCode}_${currentLang}`, JSON.stringify(json.data));
-        } catch {}
+        } catch { }
         const now = new Date();
         const timeStr = now.toLocaleTimeString('en-US', {
           hour: '2-digit',
@@ -312,7 +312,7 @@ export default function BmdSection({
               letterSpacing: '0.05em',
               marginBottom: '4px'
             }}>
-              {lang === 'bn' ? 'জেলা নির্বাচন করুন' : 'Select District (Jela)'}
+              {lang === 'bn' ? 'জেলা নির্বাচন করুন' : 'Select District '}
             </label>
             <div style={{ position: 'relative' }}>
               <select
@@ -359,7 +359,7 @@ export default function BmdSection({
               letterSpacing: '0.05em',
               marginBottom: '4px'
             }}>
-              {lang === 'bn' ? 'উপজেলা নির্বাচন করুন' : 'Select Upazila (Upjila)'}
+              {lang === 'bn' ? 'উপজেলা নির্বাচন করুন' : 'Select Upazila '}
             </label>
             <div style={{ position: 'relative' }}>
               <select
@@ -383,7 +383,7 @@ export default function BmdSection({
                 }}
               >
                 <option value="all">
-                  {lang === 'bn' ? `🌐 সর্ব উপজেলা (${upazilas.length})` : `🌐 All Upazilas (${upazilas.length})`}
+                  {lang === 'bn' ? `সব উপজেলা (${upazilas.length})` : `All Upazilas (${upazilas.length})`}
                 </option>
                 {upazilas.map(u => (
                   <option key={u.id} value={u.id}>
@@ -430,7 +430,7 @@ export default function BmdSection({
               }}
             >
               <LayoutGrid size={13} />
-              <span>{lang === 'bn' ? `সর্ব উপজেলা (${upazilas.length})` : `All Upazilas (${upazilas.length})`}</span>
+              <span>{lang === 'bn' ? `সব উপজেলা (${upazilas.length})` : `All Upazilas (${upazilas.length})`}</span>
             </button>
             <button
               id="btn-bmd-view-single"
@@ -501,23 +501,7 @@ export default function BmdSection({
           </div>
 
           {/* Last Synchronized Status Badge */}
-          {(viewMode === 'all' ? districtReloadTime : lastReloadTime) && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              backgroundColor: '#f0fdf4',
-              border: '1px solid #bbf7d0',
-              borderRadius: '20px',
-              padding: '6px 12px',
-              fontSize: '11px',
-              color: '#15803d',
-              fontWeight: 600
-            }}>
-              <CheckCircle2 size={13} color="#16a34a" />
-              <span>{viewMode === 'all' ? districtReloadTime : lastReloadTime}</span>
-            </div>
-          )}
+
         </div>
       </div>
 
