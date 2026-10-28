@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
   Globe,
   CloudSun,
@@ -24,6 +26,7 @@ interface WebsiteItem {
   themeColor: string;
   subsections: {
     id: ActiveSection;
+    href: string;
     label: string;
     icon: React.ComponentType<{ size?: number; className?: string }>;
     badge?: string;
@@ -31,8 +34,8 @@ interface WebsiteItem {
 }
 
 interface SidebarProps {
-  activeSection: ActiveSection;
-  onSelectSection: (section: ActiveSection) => void;
+  activeSection?: ActiveSection;
+  onSelectSection?: (section: ActiveSection) => void;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
 }
@@ -43,6 +46,20 @@ export default function Sidebar({
   isCollapsed,
   onToggleCollapse
 }: SidebarProps) {
+  const pathname = usePathname() || '/';
+
+  // Automatically determine active section from route
+  let effectiveActiveSection: ActiveSection = activeSection || 'forecast';
+  if (pathname.startsWith('/advisory')) {
+    effectiveActiveSection = 'advisory';
+  } else if (pathname.startsWith('/bmd')) {
+    effectiveActiveSection = 'bmd-forecast';
+  } else if (pathname.startsWith('/bamis')) {
+    effectiveActiveSection = 'bamis-bulletin';
+  } else if (pathname.startsWith('/forecast')) {
+    effectiveActiveSection = 'forecast';
+  }
+
   const [websites] = useState<WebsiteItem[]>([
     {
       id: 'nlas',
@@ -53,12 +70,14 @@ export default function Sidebar({
       subsections: [
         {
           id: 'forecast',
+          href: '/forecast',
           label: 'Weather Forecast',
           icon: CloudSun,
           badge: 'Live'
         },
         {
           id: 'advisory',
+          href: '/advisory',
           label: 'Advisory Section',
           icon: FileText,
           badge: 'Live'
@@ -74,6 +93,7 @@ export default function Sidebar({
       subsections: [
         {
           id: 'bmd-forecast',
+          href: '/bmd',
           label: 'Upazila Weather Forecast',
           icon: Compass,
           badge: 'Live'
@@ -89,6 +109,7 @@ export default function Sidebar({
       subsections: [
         {
           id: 'bamis-bulletin',
+          href: '/bamis',
           label: 'District Agromet Bulletin',
           icon: Sprout,
           badge: 'Live'
@@ -255,7 +276,7 @@ export default function Sidebar({
                   )}
                 </div>
 
-                {/* Subsections: Forecast & Advisory */}
+                {/* Subsections: Forecast, Advisory, BMD, BAMIS */}
                 {(!isCollapsed && isExpanded) && (
                   <div style={{
                     padding: '6px 8px',
@@ -266,13 +287,14 @@ export default function Sidebar({
                   }}>
                     {site.subsections.map(sub => {
                       const Icon = sub.icon;
-                      const isSelected = site.active && activeSection === sub.id;
+                      const isSelected = site.active && effectiveActiveSection === sub.id;
 
                       return (
-                        <button
+                        <Link
                           key={sub.id}
+                          href={sub.href}
                           onClick={() => {
-                            if (site.active) {
+                            if (onSelectSection) {
                               onSelectSection(sub.id);
                             }
                           }}
@@ -290,8 +312,9 @@ export default function Sidebar({
                             transition: 'all 0.15s ease',
                             textAlign: 'left',
                             width: '100%',
-                            border: 'none',
-                            cursor: 'pointer'
+                            textDecoration: 'none',
+                            cursor: 'pointer',
+                            boxSizing: 'border-box'
                           }}
                           onMouseEnter={(e) => {
                             if (!isSelected) {
@@ -329,7 +352,7 @@ export default function Sidebar({
                               {sub.badge}
                             </span>
                           )}
-                        </button>
+                        </Link>
                       );
                     })}
                   </div>
@@ -348,24 +371,37 @@ export default function Sidebar({
       }}>
         {!isCollapsed ? (
           <div>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              marginBottom: '6px'
-            }}>
-              <ShieldCheck size={16} color="#006a4e" />
-              <span style={{ fontSize: '11px', fontWeight: 700, color: '#0f172a' }}>
-                DLS Verification Engine
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+              <div style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                backgroundColor: '#10b981',
+                boxShadow: '0 0 0 2px rgba(16, 185, 129, 0.2)'
+              }} />
+              <span style={{ fontSize: '11px', fontWeight: 600, color: '#334155' }}>
+                NLS & Multi-Portal Live Hub
               </span>
             </div>
-            <p style={{ fontSize: '10px', color: '#64748b', lineHeight: 1.4 }}>
-              Autonomous meteorological & livestock advisory scraping sync active.
-            </p>
+            <div style={{
+              fontSize: '10px',
+              color: '#64748b',
+              lineHeight: 1.4,
+              backgroundColor: '#f1f5f9',
+              padding: '8px',
+              borderRadius: '6px'
+            }}>
+              Integrated telemetry feed from DLS, BMD & DAE Bangladesh.
+            </div>
           </div>
         ) : (
           <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <ShieldCheck size={18} color="#006a4e" />
+            <div style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: '#10b981'
+            }} />
           </div>
         )}
       </div>

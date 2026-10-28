@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import React from "react";
 import "./globals.css";
+import DashboardShell from "@/components/DashboardShell";
 
 export const metadata: Metadata = {
-  title: "National Livestock Advisory System (NLAS) - Weather & Advisory Dashboard",
-  description: "DLS Bangladesh National Livestock Advisory System weather forecast and advisory monitoring platform",
+  title: "National Weather, Livestock & Agromet Intelligence Platform",
+  description: "DLS, BMD & DAE Bangladesh weather forecast, livestock advisory, and agromet intelligence monitoring platform",
   icons: {
     icon: "https://nlas.dls.gov.bd/assets/images/logo/ic_dls.png"
   }
@@ -25,7 +26,11 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <DashboardShell>
+          {children}
+        </DashboardShell>
+      </body>
     </html>
   );
 }

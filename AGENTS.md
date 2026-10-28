@@ -85,10 +85,16 @@ Data is harvested directly from the NLAS backend services (`https://nlas.dls.gov
 - **`src/lib/bamis-all-districts.ts`**: Dedicated BAMIS 64-district aggregation client, division mappings (8 divisions), telemetry parser, in-memory caching, and national metric summaries.
 - **`src/components/BamisAllDistrictsView.tsx`**: Full 64-Zilla agromet overview module featuring National KPI Telemetry cards, division filter pills, real-time search, 5-way sorting, cards grid view with rain badges and advisory tags, sortable comparison table, and one-click drilldown into single zilla bulletins.
 - **`src/components/BamisSection.tsx`**: Main BAMIS portal container managing segmented view switching ('all' / 'single'), bilingual support ('bn'/'en'), live synchronization, return navigation, and deep inspection.
-- **`src/app/api/bamis/all-districts/route.ts`**: API route handler for all 64 districts agromet summary data (`/api/bamis/all-districts?lang=<en|bn>&forceReload=true`).
-- **`src/app/api/bamis/bulletin/route.ts`**: Next.js route handler for district agromet bulletins (`/api/bamis/bulletin?districtId=<id>&lang=<en|bn>`).
-- **`src/app/api/bamis/districts/route.ts`**: Next.js route handler for all 64 BAMIS districts.
-- **`src/app/page.tsx`**: Main dashboard controller managing state, cascading fetches, manual refresh, active section toggling, and view mode switching.
+- **`src/context/DashboardContext.tsx`**: React context coordinating route changes, Header reload functions, loading status, and sidebar collapse states.
+- **`src/components/DashboardShell.tsx`**: Shared client shell housing sticky Header, Link-based Sidebar, and main page viewports.
+- **`src/components/ForecastSection.tsx`**: Modularized NLAS Weather Forecast section (All-Upazilas vs Single-Upazila view, hero card, daily grid, spline charts).
+- **`src/app/page.tsx`**: Root route handler that automatically redirects `localhost:3000/` to `/forecast`.
+- **`src/app/forecast/page.tsx`**: Dedicated page route for NLAS Weather Forecast (`/forecast`).
+- **`src/app/advisory/page.tsx`**: Dedicated page route for Regional Livestock Advisory (`/advisory`).
+- **`src/app/bmd/page.tsx`**: Dedicated page route for BMD Upazila Weather Forecast (`/bmd`).
+- **`src/app/bamis/page.tsx`**: Dedicated page route for BAMIS District Agromet Bulletin (`/bamis`).
+- **`src/app/bmd-forecast/page.tsx`**: Redirect route sending `/bmd-forecast` to `/bmd`.
+- **`src/app/bamis-bulletin/page.tsx`**: Redirect route sending `/bamis-bulletin` to `/bamis`.
 - **`src/app/globals.css`**: Design tokens, typography (Inter & Hind Siliguri), smooth animations, and scrollbars.
 
 ---
