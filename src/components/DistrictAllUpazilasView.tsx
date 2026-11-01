@@ -250,18 +250,7 @@ export default function DistrictAllUpazilasView({
             alignItems: 'center',
             gap: '14px'
           }}>
-            <div style={{
-              width: '44px',
-              height: '44px',
-              borderRadius: '10px',
-              backgroundColor: '#e8f5f0',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#006a4e'
-            }}>
-              <MapPin size={22} />
-            </div>
+
             <div>
               <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>
                 Monitored Upazilas
@@ -285,18 +274,7 @@ export default function DistrictAllUpazilasView({
             alignItems: 'center',
             gap: '14px'
           }}>
-            <div style={{
-              width: '44px',
-              height: '44px',
-              borderRadius: '10px',
-              backgroundColor: '#fee2e2',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#dc2626'
-            }}>
-              <Thermometer size={22} />
-            </div>
+
             <div>
               <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>
                 District Temperature
@@ -320,18 +298,7 @@ export default function DistrictAllUpazilasView({
             alignItems: 'center',
             gap: '14px'
           }}>
-            <div style={{
-              width: '44px',
-              height: '44px',
-              borderRadius: '10px',
-              backgroundColor: '#e0f2fe',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#0284c7'
-            }}>
-              <Droplets size={22} />
-            </div>
+
             <div>
               <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>
                 Average Humidity
@@ -355,18 +322,7 @@ export default function DistrictAllUpazilasView({
             alignItems: 'center',
             gap: '14px'
           }}>
-            <div style={{
-              width: '44px',
-              height: '44px',
-              borderRadius: '10px',
-              backgroundColor: metrics.rainyUpazilasCount > 0 ? '#dbeafe' : '#f1f5f9',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: metrics.rainyUpazilasCount > 0 ? '#2563eb' : '#64748b'
-            }}>
-              <CloudRain size={22} />
-            </div>
+
             <div>
               <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>
                 Rainfall Alert

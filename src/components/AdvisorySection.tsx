@@ -187,7 +187,7 @@ export default function AdvisorySection({
     if (!advisoryData) return;
     const zoneName = lang === 'bn' ? advisoryData.region_name_bn : advisoryData.region_name;
     const monthName = lang === 'bn' ? advisoryData.month_name_bn : advisoryData.month_name;
-    
+
     let text = `==============================\n`;
     text += `NATIONAL LIVESTOCK ADVISORY SYSTEM (NLAS)\n`;
     text += `Regional Advisory - ${zoneName} (${monthName})\n`;
@@ -274,19 +274,7 @@ export default function AdvisorySection({
         boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{
-            width: '46px',
-            height: '46px',
-            borderRadius: '12px',
-            backgroundColor: '#e8f5f0',
-            color: '#006a4e',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 2px 8px rgba(0, 106, 78, 0.12)'
-          }}>
-            <Layers size={24} />
-          </div>
+
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
