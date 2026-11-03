@@ -7,6 +7,8 @@ import {
   Globe,
   CloudSun,
   FileText,
+  AlertTriangle,
+  Waves,
   ChevronDown,
   ChevronRight,
   ArrowLeft,
@@ -14,11 +16,12 @@ import {
   ShieldCheck,
   Compass,
   Sprout,
+  BookOpen,
   X
 } from 'lucide-react';
 import { useDashboard } from '@/context/DashboardContext';
 
-export type ActiveSection = 'forecast' | 'advisory' | 'bmd-forecast' | 'bamis-bulletin';
+export type ActiveSection = 'forecast' | 'advisory' | 'weather-alert' | 'flood-magnitude' | 'bmd-forecast' | 'bamis-bulletin' | 'bamis-national' | 'bmd-live-forecast';
 
 interface WebsiteItem {
   id: string;
@@ -53,8 +56,14 @@ export default function Sidebar({
 
   // Automatically determine active section from route
   let effectiveActiveSection: ActiveSection = activeSection || 'forecast';
-  if (pathname.startsWith('/advisory')) {
+  if (pathname.startsWith('/bmd-live') || pathname.startsWith('/server6')) {
+    effectiveActiveSection = 'bmd-live-forecast';
+  } else if (pathname.startsWith('/advisory')) {
     effectiveActiveSection = 'advisory';
+  } else if (pathname.startsWith('/weather-alert') || pathname.startsWith('/weather_alert')) {
+    effectiveActiveSection = 'weather-alert';
+  } else if (pathname.startsWith('/flood-magnitude') || pathname.startsWith('/flood_magnitude')) {
+    effectiveActiveSection = 'flood-magnitude';
   } else if (pathname.startsWith('/bmd')) {
     effectiveActiveSection = 'bmd-forecast';
   } else if (pathname.startsWith('/bamis')) {
@@ -83,6 +92,20 @@ export default function Sidebar({
           href: '/advisory',
           label: 'Advisory Section',
           icon: FileText,
+          badge: 'Live'
+        },
+        {
+          id: 'weather-alert',
+          href: '/weather-alert',
+          label: 'Weather Alert',
+          icon: AlertTriangle,
+          badge: 'Live'
+        },
+        {
+          id: 'flood-magnitude',
+          href: '/flood-magnitude',
+          label: 'Flood Magnitude',
+          icon: Waves,
           badge: 'Live'
         }
       ]
@@ -116,6 +139,29 @@ export default function Sidebar({
           label: 'District Agromet Bulletin',
           icon: Sprout,
           badge: 'Live'
+        },
+        {
+          id: 'bamis-national',
+          href: '/bamis/national',
+          label: 'National Agromet Bulletin',
+          icon: BookOpen,
+          badge: 'Live'
+        }
+      ]
+    },
+    {
+      id: 'bmd-live',
+      name: 'BMD Live Portal',
+      domain: 'server6.bmd.gov.bd',
+      active: true,
+      themeColor: '#1d76a2',
+      subsections: [
+        {
+          id: 'bmd-live-forecast',
+          href: '/bmd-live',
+          label: 'Weather Forecast',
+          icon: CloudSun,
+          badge: 'Live'
         }
       ]
     }
@@ -124,7 +170,8 @@ export default function Sidebar({
   const [expandedSites, setExpandedSites] = useState<Record<string, boolean>>({
     nlas: true,
     bmd: true,
-    bamis: true
+    bamis: true,
+    'bmd-live': true
   });
 
   const toggleSite = (siteId: string) => {

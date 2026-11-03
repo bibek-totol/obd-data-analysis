@@ -184,8 +184,9 @@ export const MONTHS_FULL = [
 
 export function parseHourFromStepTime(timeStr: string): number {
   if (!timeStr) return 0;
-  const parts = timeStr.trim().split(' ');
-  const time = parts[1] || parts[0];
+  const normalized = timeStr.trim().replace('T', ' ');
+  const parts = normalized.split(' ');
+  const time = parts.length > 1 ? parts[1] : parts[0];
   const [p0, p1] = time.split(':');
   // If format is 00:HH:00 (NLAS special format where hour is in p1)
   if (p0 === '00' && p1 !== undefined && Number(p1) > 0) {
@@ -195,10 +196,11 @@ export function parseHourFromStepTime(timeStr: string): number {
 }
 
 export function parseDateFromStepTime(timeStr: string): { year: number; month: number; day: number; dateStr: string } {
-  const datePart = (timeStr || '').trim().split(' ')[0] || '';
+  const normalized = (timeStr || '').trim().replace('T', ' ');
+  const datePart = normalized.split(' ')[0] || '';
   const [y, m, d] = datePart.split('-').map(Number);
   const now = new Date();
-  if (!y || !m || !d) {
+  if (!y || !m || !d || isNaN(y) || isNaN(m) || isNaN(d)) {
     const fallbackYear = now.getFullYear();
     const fallbackMonth = now.getMonth();
     const fallbackDay = now.getDate();
@@ -213,7 +215,7 @@ export function parseDateFromStepTime(timeStr: string): { year: number; month: n
     year: y,
     month: m - 1, // 0-indexed month
     day: d,
-    dateStr: datePart
+    dateStr: `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
   };
 }
 
@@ -404,13 +406,11 @@ export async function fetchWeatherForecast(upazilaCode: string, forceReload: boo
     const itemStart = rfArr[i]?.step_start;
     if (!itemStart) continue;
 
-    const dateStr = itemStart.split(' ')[0];
+    const { year, month, day, dateStr } = parseDateFromStepTime(itemStart);
     // Skip any historical days prior to the present date so cards always start on today's date!
     if (dateStr < dhakaDateStr) {
       continue;
     }
-
-    const { year, month, day } = parseDateFromStepTime(itemStart);
     const startDate = new Date(year, month, day);
     const dayOfWeek = WEEKDAYS[startDate.getDay()];
     const dateFormatted = `${day} ${MONTHS_SHORT[month]}, ${year}`;
@@ -582,8 +582,12 @@ export async function fetchWeatherForecast(upazilaCode: string, forceReload: boo
     const Vr = hRf[Wn]?.step_start;
     const ur = hRf[Wn]?.step_end;
     if (!Vr || !ur) continue;
-    const Tn = Vr.substring(0, 4) + "" + Vr.substring(5, 7) + Vr.substring(8, 10) + Vr.substring(11, 13);
-    const xr = ur.substring(0, 4) + "" + ur.substring(5, 7) + ur.substring(8, 10) + ur.substring(11, 13);
+    const dStart = parseDateFromStepTime(Vr);
+    const hStart = parseHourFromStepTime(Vr);
+    const dEnd = parseDateFromStepTime(ur);
+    const hEnd = parseHourFromStepTime(ur);
+    const Tn = `${dStart.year}${String(dStart.month + 1).padStart(2, '0')}${String(dStart.day).padStart(2, '0')}${String(hStart).padStart(2, '0')}`;
+    const xr = `${dEnd.year}${String(dEnd.month + 1).padStart(2, '0')}${String(dEnd.day).padStart(2, '0')}${String(hEnd).padStart(2, '0')}`;
     if (Je >= Tn && Je < xr) {
       const rfVal = Math.round(hRf[Wn]?.val_max || 0);
       const cldVal = Math.round(hCld[Wn]?.val_avg || 0);

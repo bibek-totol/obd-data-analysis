@@ -42,9 +42,9 @@ interface DistrictAllUpazilasViewProps {
 // Helper to format raw government time string e.g. "2026-10-26 00:06:00" to "6:00 AM" or "06:00"
 function formatHourlyTime(rawStr: string): string {
   if (!rawStr) return '';
-  let timePart = rawStr;
-  if (rawStr.includes(' ')) {
-    timePart = rawStr.split(' ')[1];
+  let timePart = rawStr.trim().replace('T', ' ');
+  if (timePart.includes(' ')) {
+    timePart = timePart.split(' ')[1];
   }
   const parts = timePart.split(':');
   let hour = parseInt(parts[0], 10);
@@ -64,8 +64,9 @@ function formatHourlySlotRange(sStart: string, sEnd: string): { timeSpan: string
 
   // Extract day
   let dayLabel = '';
-  if (sStart && sStart.includes(' ')) {
-    const datePart = sStart.split(' ')[0]; // "2026-10-26"
+  const normalized = (sStart || '').trim().replace('T', ' ');
+  if (normalized.includes(' ')) {
+    const datePart = normalized.split(' ')[0]; // "2026-10-26"
     const p = datePart.split('-');
     if (p.length === 3) {
       const day = parseInt(p[2], 10);

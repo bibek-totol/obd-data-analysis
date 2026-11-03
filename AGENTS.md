@@ -15,9 +15,11 @@ This is a **Next.js (App Router, TypeScript, Vanilla CSS)** application designed
 - **Primary Website (Active)**: **National Livestock Advisory System (NLAS / NLS)** (`https://nlas.dls.gov.bd/dashboard/weather_forecast` and `https://nlas.dls.gov.bd/dashboard/advisory_regional`).
 - **Sidebar Structure**:
   - Clean collapsible navigation dedicated to the **NLS Portal (NLAS)** (`nlas.dls.gov.bd`).
-  - Under NLS, there are two distinct sub-sections:
+  - Under NLS, there are four distinct sub-sections:
     1. **Forecast Section** *(Completed & Live)*: Meteorological forecasts, district/upazila filtering, 5-6 day weather cards, and 3-hourly interval spline charts.
     2. **Advisory Section** *(Completed & Live)*: Region-wise monthly advisory with 7 agro-ecological zones, 12-month climatology graphs, and tailored livestock/poultry bulletins.
+    3. **Weather Alert Section** *(Completed & Live)*: National alert counters, district/upazila warning levels for Rainfall (1), Wind (2), Heat Wave (3), Cold Wave (4), and THI Discomfort for Ruminants (10), Broilers (12), Layers (13).
+    4. **Flood Magnitude Section** *(Completed & Live)*: River water level intelligence from FFWC/BWDB across 150+ monitoring stations in 4 river basins with Danger Level thresholds and livestock safety advisories.
 - **UI / UX Principles**:
   - Clean, professional **white background** layout designed to prevent visual clutter.
   - Government branding (NLS Bangladesh, Department of Livestock Services - DLS Bangladesh).
@@ -36,6 +38,9 @@ Data is harvested directly from the NLAS backend services (`https://nlas.dls.gov
 | **3-Hourly Steps** | `upazila_forecast_steps_recent?SOURCE=BMDWRF&PCODE=<pcode\>` | `/api/nlas/forecast?upazilaCode=<pcode\>` |
 | **District All Upazilas** | Batch aggregation across upazilas | `/api/nlas/district-forecast?districtCode=<code\>` |
 | **Regional Advisory** | `nlas/advisory_region.php?region_code=<code\>&lang=<en\|bn\>&month=<1-12\>` | `/api/nlas/advisory-regional?regionCode=<code\>&lang=<en\|bn\>&month=<m\>` |
+| **Weather Alert Counts** | `common/get_alert_count_all_upazila.php` | `/api/nlas/weather-alert?type=counts` |
+| **District/Upazila Alerts** | `common/get_alert_district.php` & `get_alert_upazila.php` | `/api/nlas/weather-alert?parameter=<p\>&districtId=<id\>` |
+| **Flood Stations & Water Levels** | `ffwc/data_load/stations-2025/` & `recent-observed/` | `/api/nlas/flood-magnitude` |
 
 ### Key Classification & Conversion Logic
 1. **Weather Forecast Logic (`src/lib/nlas-client.ts` & `src/lib/district-forecast.ts`)**:
@@ -130,7 +135,20 @@ Data is harvested directly from the NLAS backend services (`https://nlas.dls.gov
      - Bilingual toggle (`English` / `বাংলা`) with Bengali numerals, weekdays, and weather terminology.
      - Technical attribution to Bangladesh Meteorological Department (BMD), RIMES, and Govt of Bangladesh.
 3. **BAMIS Portal (DAE)** (`https://www.bamis.gov.bd/`):
-   - **District Agromet Advisory Bulletin Section**:
+   - **National Agromet Bulletin Section (`/bamis/national` & `/bamis-national`)**:
+     - Official national bulletin from Department of Agricultural Extension (DAE) & Ministry of Agriculture (`https://www.bamis.gov.bd/bulletin/nation/current/`).
+     - **Authentic Executive Header & Meta Card**:
+       - Issue date (`২৮ অক্টোবর ২০২৬ (বুধবার)` / `28 October 2026 (Wednesday)`) and dekad validity period (`২৮.১০.২০২৬ - ০১.১১.২০২৬`).
+     - **National KPI Telemetry Cards**:
+       - 5-day quantitative forecast window, 64 districts monitored across 8 divisions, 10 critical agricultural sectors, and 8 quantitative meteorological parameters.
+     - **5-Day District Quantitative Forecast**:
+       - 8 meteorological parameters: Cumulative Rainfall (`rainc/sum`), Max Temp (`t2/max`), Min Temp (`t2/min`), Diurnal Range (`t2/diurnal`), Max Humidity (`rh2/max`), Min Humidity (`rh2/min`), Cloud Cover (`clflo/avg`), Wind Speed (`ws10/avg`).
+       - 64-District Data Table: Real-time search, 8-division filters, value sorting, and percentage distribution bars.
+     - **Key Agromet Advisories (মূখ্য কৃষি আবহাওয়া পরামর্শ)**:
+       - 10 sectors: Wheat (গম), Aman Rice (ধান আমন), Boro Rice (ধান বোরো), Vegetables (সবজি), Horticultural Crops (উদ্যান ফসল), Mustard (সরিষা), Livestock (গবাদি পশু), Poultry (হাঁসমুরগী), Fisheries (মৎস্য), Potato (আলু).
+       - Phenological stage badges, numbered actionable directives, search filter, and one-click copy advisory with confirmation.
+       - Live sync badge with timestamp, dedicated reload button in header and section, zero background polling loops.
+       - Bilingual support (`English` / `বাংলা`) with authentic terminology.
      - Official bulletins from Department of Agricultural Extension (DAE) & Ministry of Agriculture.
      - **All 64 Zillas in One Section (`BamisAllDistrictsView.tsx` on `/bamis`)**:
        - National Agromet KPI Telemetry banner: 64 districts across 8 divisions, temperature spectrum (min/max/average), rainfall forecast alert count, average relative humidity, and active bulletin window.
@@ -150,3 +168,37 @@ Data is harvested directly from the NLAS backend services (`https://nlas.dls.gov
      - Bilingual toggle (`English` / `বাংলা`) with Bengali numerals and translations.
 
 
+
+
+4. **BMD Live Portal** (`https://server6.bmd.gov.bd/`):
+   - **Weather Forecast Section (`/bmd-live`)**:
+     - Real-time meteorological telemetry and daily outlook directly from BMD Live backend (`https://server6.bmd.gov.bd/home_all_json`).
+     - **Authentic Portal Layout (Image 1 & Image 2)**:
+       - **Left Filter Column**:
+         - Division dropdown (Dhaka, Chattogram, Rajshahi, Khulna, Barishal, Sylhet, Rangpur, Mymensingh).
+         - Station dropdown (dynamically populated for the active division, defaulting to Faridpur/Dhaka).
+         - "View Details" button opening interactive modal with complete surface pressure, wind, and humidity indicators.
+         - "☁ Forecast" button (BMD cyan-blue with yellow cloud icon).
+         - BMD Daily Weather Bulletin banner linking to official daily forecasts.
+       - **Today's Condition Card**:
+         - Header: `Today's Condition: [Station Name]` (e.g. `Today's Condition: Faridpur`).
+         - Atmospheric blue gradient card (`#1d6e99` to `#2586b6`).
+         - Weather condition icon (`weather_icon`).
+         - Max Temp `↑ 32.1°C` (orange up arrow) and Min Temp `↓ 23.0°C` (cyan down arrow).
+         - Weather condition text (`Partly Cloudy` / `আংশিক মেঘলা`).
+         - Telemetry list: Wind speed (`km/h`), Morning Humidity (`%`), Evening Humidity (`%`), Surface Pressure (`hPa`), and Rainfall (`mm`).
+       - **Sunrise & Sunset Pill Capsules**:
+         - Left pill: Sunrise icon + `Sunrise: 6:07 AM`.
+         - Right pill: `Sunset: 5:20 PM` + Sunset icon.
+       - **Next X-Days Weather Forecast**:
+         - Header: `Next 1-Days Weather Forecast` with `[Division] - [Station]` combined dropdown (e.g. `Dhaka - Faridpur`).
+         - Dark teal forecast cards (`#21607a`): Date (`4-11-2026`), Weekday (`Wednesday`), Condition (`Partly Cloudy`), Weather icon, and Max/Min temps (`↑ 30.9°C`, `↓ 23.4°C`).
+     - **All Stations Comparison View**:
+       - National KPI telemetry cards (Total Stations: 46, Temp Range, Avg Morning/Evening Humidity, Rainy Stations).
+       - Search bar across station/division names.
+       - Sortable comparison table of all stations across Bangladesh.
+     - **Real-Time Periodic Synchronization**:
+       - Auto-refresh every 5 minutes.
+       - Dedicated `Reload BMD Live Data` button in top header triggering cache-busting queries (`reload=true&t=...`).
+       - Live sync status indicator with pulse animation and timestamp.
+     - Bilingual toggle (`English` / `বাংলা`) with Bengali numerals, weekdays, and conditions.

@@ -20,11 +20,14 @@ export default function Header({
 }: HeaderProps) {
   const { isMobileDrawerOpen, toggleMobileDrawer } = useDashboard();
 
+  const isBmdLive = activeSection === 'bmd-live-forecast';
   const isBmd = activeSection === 'bmd-forecast';
-  const isBamis = activeSection === 'bamis-bulletin';
+  const isBamisBulletin = activeSection === 'bamis-bulletin';
+  const isBamisNational = activeSection === 'bamis-national';
+  const isBamis = isBamisBulletin || isBamisNational;
 
-  const themeColor = isBmd ? '#0369a1' : isBamis ? '#0c713e' : '#006a4e';
-  const themeHoverColor = isBmd ? '#075985' : isBamis ? '#084f2b' : '#00523d';
+  const themeColor = isBmdLive ? '#1d76a2' : isBmd ? '#0369a1' : isBamis ? '#0c713e' : '#006a4e';
+  const themeHoverColor = isBmdLive ? '#165c7f' : isBmd ? '#075985' : isBamis ? '#084f2b' : '#00523d';
 
   return (
     <header style={{
@@ -67,7 +70,21 @@ export default function Header({
 
         {/* Portal Branding Badge */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-          {isBmd ? (
+          {isBmdLive ? (
+            <div style={{
+              background: 'linear-gradient(135deg, #1d6e99 0%, #2586b6 100%)',
+              color: '#ffffff',
+              padding: '4px 10px',
+              borderRadius: '6px',
+              fontWeight: 800,
+              fontSize: '14px',
+              letterSpacing: '0.04em',
+              boxShadow: '0 2px 6px rgba(29, 110, 153, 0.25)',
+              flexShrink: 0
+            }}>
+              BMD <span style={{ fontSize: '9px', fontWeight: 500, color: '#e0f2fe' }}>LIVE</span>
+            </div>
+          ) : isBmd ? (
             <div style={{
               background: 'linear-gradient(135deg, #0a336f 0%, #0369a1 100%)',
               color: '#ffffff',
@@ -122,9 +139,13 @@ export default function Header({
               overflow: 'hidden',
               textOverflow: 'ellipsis'
             }}>
-              {isBmd
+              {isBmdLive
+                ? 'Bangladesh Meteorological Department (BMD Live)'
+                : isBmd
                 ? 'Upazila Weather Forecast Portal (USF)'
-                : isBamis
+                : isBamisNational
+                ? 'National Agromet Advisory Bulletin (BAMIS)'
+                : isBamisBulletin
                 ? 'District Agromet Advisory Bulletin (BAMIS)'
                 : 'National Livestock Advisory System'}
             </h1>
@@ -136,7 +157,9 @@ export default function Header({
               overflow: 'hidden',
               textOverflow: 'ellipsis'
             }}>
-              {isBmd
+              {isBmdLive
+                ? 'National Weather Forecasting Center • server6.bmd.gov.bd • Govt. of Bangladesh'
+                : isBmd
                 ? 'Bangladesh Meteorological Department (BMD) & RIMES • Govt. of Bangladesh'
                 : isBamis
                 ? 'Department of Agricultural Extension (DAE) • Ministry of Agriculture • Govt. of Bangladesh'
@@ -153,18 +176,30 @@ export default function Header({
           onClick={onReload}
           disabled={isLoading}
           id={
-            isBmd
+            isBmdLive
+              ? 'btn-reload-latest-bmd-live'
+              : isBmd
               ? 'btn-reload-latest-bmd-forecast'
-              : isBamis
+              : isBamisNational
+              ? 'btn-reload-latest-bamis-national'
+              : isBamisBulletin
               ? 'btn-reload-latest-bamis-bulletin'
               : activeSection === 'forecast'
               ? 'btn-reload-latest-forecast'
+              : activeSection === 'weather-alert'
+              ? 'btn-reload-latest-weather-alert'
+              : activeSection === 'flood-magnitude'
+              ? 'btn-reload-latest-flood-magnitude'
               : 'btn-reload-latest-advisory'
           }
           title={
-            isBmd
+            isBmdLive
+              ? 'Click to fetch fresh real-time observation from server6.bmd.gov.bd'
+              : isBmd
               ? 'Click to fetch fresh real-time BMDWRF weather forecast'
-              : isBamis
+              : isBamisNational
+              ? 'Click to fetch fresh real-time BAMIS national agromet bulletin'
+              : isBamisBulletin
               ? 'Click to fetch fresh real-time BAMIS agromet bulletin'
               : activeSection === 'forecast'
               ? 'Click to fetch fresh real-time weather forecast'
@@ -206,12 +241,20 @@ export default function Header({
           <span className="hide-on-mobile">
             {isLoading
               ? 'Fetching...'
+              : isBmdLive
+              ? 'Reload BMD Live Data'
               : isBmd
               ? 'Reload Latest BMD Feed'
-              : isBamis
+              : isBamisNational
+              ? 'Reload National Bulletin'
+              : isBamisBulletin
               ? 'Reload Latest BAMIS Feed'
               : activeSection === 'forecast'
               ? 'Reload Latest Forecast'
+              : activeSection === 'weather-alert'
+              ? 'Reload Latest Alerts'
+              : activeSection === 'flood-magnitude'
+              ? 'Reload Flood Telemetry'
               : 'Reload Latest Advisory'}
           </span>
           <span className="mobile-only-block" style={{ display: 'none' }}>
