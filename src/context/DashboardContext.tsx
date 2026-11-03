@@ -32,7 +32,9 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
   // Derive active section from the current URL pathname
   let activeSection: ActiveSection = 'forecast';
-  if (pathname.startsWith('/bmd-live') || pathname.startsWith('/server6')) {
+  if (pathname.startsWith('/bmd-live/warnings') || pathname.startsWith('/bmd-live-warnings') || pathname.startsWith('/server6/warnings')) {
+    activeSection = 'bmd-live-warnings';
+  } else if (pathname.startsWith('/bmd-live') || pathname.startsWith('/server6')) {
     activeSection = 'bmd-live-forecast';
   } else if (pathname.startsWith('/bamis/national') || pathname.startsWith('/bamis-national')) {
     activeSection = 'bamis-national';

@@ -198,7 +198,21 @@ Data is harvested directly from the NLAS backend services (`https://nlas.dls.gov
        - Search bar across station/division names.
        - Sortable comparison table of all stations across Bangladesh.
      - **Real-Time Periodic Synchronization**:
-       - Auto-refresh every 5 minutes.
        - Dedicated `Reload BMD Live Data` button in top header triggering cache-busting queries (`reload=true&t=...`).
        - Live sync status indicator with pulse animation and timestamp.
      - Bilingual toggle (`English` / `বাংলা`) with Bengali numerals, weekdays, and conditions.
+   - **Severe Weather Warnings Section (`/bmd-live/warnings` & `/bmd-live-warnings`)**:
+     - Upstream data directly harvested from official BMD server6 warning pages:
+       1. Marine Warning (`/en/p/Marine-Warning` & `/bn/p/Marine-Warning`)
+       2. Inland Riverport Warning (`/en/p/Inland-Riverport-Warning` & `/bn/p/Inland-Riverport-Warning`)
+       3. Heavy Rainfall Warning (`/en/p/Heavy-Rainfall-Warning` & `/bn/p/Heavy-Rainfall-Warning`)
+       4. Lightning Warning (`/en/p/Lightning-Warning` & `/bn/p/Lightning-Warning`)
+       5. Kalbaishakhi Warning (`/en/p/Kalbaishakhi-Warning` & `/bn/p/Kalbaishakhi-Warning`)
+       6. Heat Wave Warning (`/en/p/Heat-Wave-Warning` & `/bn/p/Heat-Wave-Warning`)
+       7. Fog Warning (`/en/p/Fog-Warning` & `/bn/p/Fog-Warning`)
+       8. Special Weather Bulletin (`/en/p/Special-Weather-Bulletin` & `/bn/p/Special-Weather-Bulletin`)
+     - **Authentic Emergency Alert Marquee**: Real-time breaking cyclone / storm advisory banner extracted from BMD Live (e.g. Signal No. 3 for Maritime Ports due to cyclone "Murasu").
+     - **Executive KPI Telemetry**: 4 summary indicator cards (Active Warning Bulletins, Maritime Ports Cautionary No. 3, Inland Riverports Gale Signal No. 1, Normal/Cleared domains).
+     - **Dynamic Filtering & Search**: Filter by status (`All (8)`, `Active Alerts Only`, `Normal / Cleared`), real-time search, and dual view switcher (Cards Grid vs Comparison Table).
+     - **In-App Official PDF Viewer & Language Switch**: Modal reader supporting bilingual PDFs (Bangla / English) with direct download and portal link outs.
+     - **On-Demand Synchronization**: Zero background polling loops; triggered via dedicated `Reload Warnings` button in the section and top Header.

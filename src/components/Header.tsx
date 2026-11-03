@@ -20,14 +20,16 @@ export default function Header({
 }: HeaderProps) {
   const { isMobileDrawerOpen, toggleMobileDrawer } = useDashboard();
 
-  const isBmdLive = activeSection === 'bmd-live-forecast';
+  const isBmdLiveForecast = activeSection === 'bmd-live-forecast';
+  const isBmdLiveWarnings = activeSection === 'bmd-live-warnings';
+  const isBmdLive = isBmdLiveForecast || isBmdLiveWarnings;
   const isBmd = activeSection === 'bmd-forecast';
   const isBamisBulletin = activeSection === 'bamis-bulletin';
   const isBamisNational = activeSection === 'bamis-national';
   const isBamis = isBamisBulletin || isBamisNational;
 
-  const themeColor = isBmdLive ? '#1d76a2' : isBmd ? '#0369a1' : isBamis ? '#0c713e' : '#006a4e';
-  const themeHoverColor = isBmdLive ? '#165c7f' : isBmd ? '#075985' : isBamis ? '#084f2b' : '#00523d';
+  const themeColor = isBmdLiveWarnings ? '#dc2626' : isBmdLive ? '#1d76a2' : isBmd ? '#0369a1' : isBamis ? '#0c713e' : '#006a4e';
+  const themeHoverColor = isBmdLiveWarnings ? '#b91c1c' : isBmdLive ? '#165c7f' : isBmd ? '#075985' : isBamis ? '#084f2b' : '#00523d';
 
   return (
     <header style={{
@@ -139,7 +141,9 @@ export default function Header({
               overflow: 'hidden',
               textOverflow: 'ellipsis'
             }}>
-              {isBmdLive
+              {isBmdLiveWarnings
+                ? 'Severe Weather Warnings (server6.bmd.gov.bd)'
+                : isBmdLive
                 ? 'Bangladesh Meteorological Department (BMD Live)'
                 : isBmd
                 ? 'Upazila Weather Forecast Portal (USF)'
@@ -157,7 +161,9 @@ export default function Header({
               overflow: 'hidden',
               textOverflow: 'ellipsis'
             }}>
-              {isBmdLive
+              {isBmdLiveWarnings
+                ? 'Storm Warning Center (SWC) • Marine, Inland Riverport & Special Weather Bulletins • server6.bmd.gov.bd'
+                : isBmdLive
                 ? 'National Weather Forecasting Center • server6.bmd.gov.bd • Govt. of Bangladesh'
                 : isBmd
                 ? 'Bangladesh Meteorological Department (BMD) & RIMES • Govt. of Bangladesh'
@@ -176,7 +182,9 @@ export default function Header({
           onClick={onReload}
           disabled={isLoading}
           id={
-            isBmdLive
+            isBmdLiveWarnings
+              ? 'btn-reload-latest-bmd-live-warnings'
+              : isBmdLive
               ? 'btn-reload-latest-bmd-live'
               : isBmd
               ? 'btn-reload-latest-bmd-forecast'
@@ -193,7 +201,9 @@ export default function Header({
               : 'btn-reload-latest-advisory'
           }
           title={
-            isBmdLive
+            isBmdLiveWarnings
+              ? 'Click to fetch fresh severe weather warnings from server6.bmd.gov.bd'
+              : isBmdLive
               ? 'Click to fetch fresh real-time observation from server6.bmd.gov.bd'
               : isBmd
               ? 'Click to fetch fresh real-time BMDWRF weather forecast'
@@ -241,6 +251,8 @@ export default function Header({
           <span className="hide-on-mobile">
             {isLoading
               ? 'Fetching...'
+              : isBmdLiveWarnings
+              ? 'Reload Warnings'
               : isBmdLive
               ? 'Reload BMD Live Data'
               : isBmd

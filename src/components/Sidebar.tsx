@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { useDashboard } from '@/context/DashboardContext';
 
-export type ActiveSection = 'forecast' | 'advisory' | 'weather-alert' | 'flood-magnitude' | 'bmd-forecast' | 'bamis-bulletin' | 'bamis-national' | 'bmd-live-forecast';
+export type ActiveSection = 'forecast' | 'advisory' | 'weather-alert' | 'flood-magnitude' | 'bmd-forecast' | 'bamis-bulletin' | 'bamis-national' | 'bmd-live-forecast' | 'bmd-live-warnings';
 
 interface WebsiteItem {
   id: string;
@@ -56,8 +56,12 @@ export default function Sidebar({
 
   // Automatically determine active section from route
   let effectiveActiveSection: ActiveSection = activeSection || 'forecast';
-  if (pathname.startsWith('/bmd-live') || pathname.startsWith('/server6')) {
+  if (pathname.startsWith('/bmd-live/warnings') || pathname.startsWith('/bmd-live-warnings') || pathname.startsWith('/server6/warnings')) {
+    effectiveActiveSection = 'bmd-live-warnings';
+  } else if (pathname.startsWith('/bmd-live') || pathname.startsWith('/server6')) {
     effectiveActiveSection = 'bmd-live-forecast';
+  } else if (pathname.startsWith('/bamis/national') || pathname.startsWith('/bamis-national')) {
+    effectiveActiveSection = 'bamis-national';
   } else if (pathname.startsWith('/advisory')) {
     effectiveActiveSection = 'advisory';
   } else if (pathname.startsWith('/weather-alert') || pathname.startsWith('/weather_alert')) {
@@ -162,6 +166,13 @@ export default function Sidebar({
           label: 'Weather Forecast',
           icon: CloudSun,
           badge: 'Live'
+        },
+        {
+          id: 'bmd-live-warnings',
+          href: '/bmd-live/warnings',
+          label: 'Severe Weather Warnings',
+          icon: AlertTriangle,
+          badge: 'Alert'
         }
       ]
     }
