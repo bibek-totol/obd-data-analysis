@@ -1,0 +1,178 @@
+{
+  "titleEn": "Three-Month Long Range Climate Outlook (November 2026 - January 2027)",
+  "titleBn": "তিন মাসের দীর্ঘমেয়াদী আবহাওয়া পূর্বাভাস (নভেম্বর ২০২৬ - জানুয়ারি ২০২৭)",
+  "source": "server6.bmd.gov.bd (Official Live)",
+  "refNo": "23.09.2680.172.43.002.25.2672",
+  "issuedDate": "01-11-2026",
+  "validityPeriodEn": "November 2026 - January 2027",
+  "validityPeriodBn": "নভেম্বর ২০২৬ - জানুয়ারি ২০২৭",
+  "authorityEn": "Bangladesh Meteorological Department (BMD), Agargaon, Dhaka",
+  "authorityBn": "বাংলাদেশ আবহাওয়া অধিদপ্তর, ঝড় সতর্কীকরণ কেন্দ্র ও বিশেষজ্ঞ কমিটি, আগারগাঁও, ঢাকা",
+  "chairmanEn": "Md. Momenul Islam, Director (Current Charge) & Chairman, Expert Committee",
+  "chairmanBn": "মো: মোমেনুল ইসলাম, পরিচালক (চলতি দায়িত্ব) ও চেয়ারম্যান, বিশেষজ্ঞ কমিটি",
+  "enUrl": "https://server6.bmd.gov.bd/en/p/Three-Month-Outlook",
+  "bnUrl": "https://server6.bmd.gov.bd/bn/p/Three-Month-Outlook",
+  "enPdf": "https://server6.bmd.gov.bd/file/2026/11/01/pdf/211673.pdf",
+  "bnPdf": "https://server6.bmd.gov.bd/file/2026/11/01/pdf/211674.pdf",
+  "fileCodeEn": "211673",
+  "fileCodeBn": "211674",
+  "synopticDirectives": [
+    {
+      "id": "rainfall",
+      "icon": "CloudRain",
+      "nameEn": "Overall Rainfall Outlook",
+      "nameBn": "সার্বিক বৃষ্টিপাত পরিস্থিতি",
+      "statusEn": "Overall Normal Rainfall",
+      "statusBn": "সারাদেশে স্বাভাবিক বৃষ্টিপাতের সম্ভাবনা",
+      "severity": "normal",
+      "summaryEn": "Overall rainfall is likely to remain within the normal climatological range across the country during November 2026 to January 2027.",
+      "summaryBn": "সমগ্র দেশে সামগ্রিকভাবে স্বাভাবিক বৃষ্টিপাত হওয়ার সম্ভাবনা রয়েছে। তবে বিভাগভেদে স্বাভাবিক ও সামান্য কম-বেশি হতে পারে।"
+    },
+    {
+      "id": "cyclones",
+      "icon": "Wind",
+      "nameEn": "Bay of Bengal Depressions & Cyclones",
+      "nameBn": "বঙ্গোপসাগরে নিম্নচাপ ও ঘূর্ণিঝড়",
+      "statusEn": "2-4 Low Pressure Systems (1-2 Cyclones)",
+      "statusBn": "২-৪টি নিম্নচাপ (১-২টি ঘূর্ণিঝড়ে রূপ নিতে পারে)",
+      "severity": "high",
+      "summaryEn": "2 to 4 low pressure systems are likely to form over the Bay of Bengal during the three-month period, among which 1 to 2 may intensify into cyclonic storms.",
+      "summaryBn": "বঙ্গোপসাগরে ২-৪টি লঘুচাপ সৃষ্টি হতে পারে, যার মধ্যে ১-২টি নিম্নচাপ ও পরবর্তীতে ঘূর্ণিঝড়ে রূপ নিতে পারে।"
+    },
+    {
+      "id": "temperature",
+      "icon": "Flame",
+      "nameEn": "Temperature Trend",
+      "nameBn": "দিন ও রাতের তাপমাত্রা",
+      "statusEn": "Slightly Above Normal",
+      "statusBn": "স্বাভাবিকের চেয়ে কিছুটা বেশি",
+      "severity": "medium",
+      "summaryEn": "Both day and night temperatures over the country may remain slightly higher than normal throughout this seasonal outlook period.",
+      "summaryBn": "সারাদেশে দিন ও রাতের তাপমাত্রা স্বাভাবিক অপেক্ষা কিছুটা বেশি থাকতে পারে।"
+    },
+    {
+      "id": "fog",
+      "icon": "CloudFog",
+      "nameEn": "Fog & Inland Visibility",
+      "nameBn": "কুয়াশা ও নদী অববাহিকা পরিস্থিতি",
+      "statusEn": "Moderate to Dense Fog in River Basins",
+      "statusBn": "নদী অববাহিকায় মাঝারি থেকে ঘন কুয়াশা",
+      "severity": "medium",
+      "summaryEn": "Moderate to dense fog may occur from late night to morning at places across the country, especially along river basins and highways, reducing diurnal temperature variance and sharpening cold sensation.",
+      "summaryBn": "শেষরাত থেকে সকাল পর্যন্ত দেশের নদী অববাহিকা ও উত্তরাঞ্চলে মাঝারি থেকে ঘন কুয়াশা এবং অন্যত্র হালকা থেকে মাঝারি কুয়াশা পড়তে পারে। ঘন কুয়াশার কারণে দিন ও রাতের তাপমাত্রার পার্থক্য হ্রাস পেয়ে শীতের অনুভূতি বাড়তে পারে।"
+    },
+    {
+      "id": "coldwave",
+      "icon": "Snowflake",
+      "nameEn": "Winter Cold Waves",
+      "nameBn": "শীতকালীন শৈত্যপ্রবাহ",
+      "statusEn": "4-6 Cold Waves (2-3 Severe 4-6°C)",
+      "statusBn": "৪-৬টি শৈত্যপ্রবাহ (২-৩টি তীব্র ৪-৬°সে)",
+      "severity": "high",
+      "summaryEn": "4 to 6 mild (8-10°C) to moderate (6-8°C) cold waves may sweep across parts of the country, of which 2 to 3 may intensify into severe cold waves (4-6°C), particularly over northern, north-western, and western districts.",
+      "summaryBn": "দেশের উত্তর, উত্তর-পশ্চিমাঞ্চল ও পশ্চিমাঞ্চলে ৪-৬টি মৃদু (৮-১০°সে) থেকে মাঝারি (৬-৮°সে) ধরনের শৈত্যপ্রবাহ বয়ে যেতে পারে, যার মধ্যে ২-৩টি তীব্র (৪-৬°সে) শৈত্যপ্রবাহে রূপ নিতে পারে।"
+    }
+  ],
+  "divisionsRainfall": [
+    {
+      "divisionEn": "Dhaka",
+      "divisionBn": "ঢাকা",
+      "novNormal": 26,
+      "novForecast": "15-25",
+      "decNormal": 9,
+      "decForecast": "08-10",
+      "janNormal": 8,
+      "janForecast": "06-10",
+      "soilMoistureNov": "25-35%"
+    },
+    {
+      "divisionEn": "Mymensingh",
+      "divisionBn": "ময়মনসিংহ",
+      "novNormal": 14,
+      "novForecast": "10-15",
+      "decNormal": 8,
+      "decForecast": "06-10",
+      "janNormal": 9,
+      "janForecast": "08-10",
+      "soilMoistureNov": "30-40%"
+    },
+    {
+      "divisionEn": "Chattogram",
+      "divisionBn": "চট্টগ্রাম",
+      "novNormal": 39,
+      "novForecast": "35-40",
+      "decNormal": 10,
+      "decForecast": "10-15",
+      "janNormal": 8,
+      "janForecast": "06-10",
+      "soilMoistureNov": "30-40%"
+    },
+    {
+      "divisionEn": "Sylhet",
+      "divisionBn": "সিলেট",
+      "novNormal": 25,
+      "novForecast": "15-25",
+      "decNormal": 13,
+      "decForecast": "10-15",
+      "janNormal": 8,
+      "janForecast": "06-10",
+      "soilMoistureNov": "30-40%"
+    },
+    {
+      "divisionEn": "Rajshahi",
+      "divisionBn": "রাজশাহী",
+      "novNormal": 12,
+      "novForecast": "10-15",
+      "decNormal": 8,
+      "decForecast": "06-10",
+      "janNormal": 8,
+      "janForecast": "06-10",
+      "soilMoistureNov": "25-35%"
+    },
+    {
+      "divisionEn": "Rangpur",
+      "divisionBn": "রংপুর",
+      "novNormal": 6,
+      "novForecast": "05-10",
+      "decNormal": 5,
+      "decForecast": "03-07",
+      "janNormal": 9,
+      "janForecast": "08-10",
+      "soilMoistureNov": "30-40%"
+    },
+    {
+      "divisionEn": "Khulna",
+      "divisionBn": "খুলনা",
+      "novNormal": 29,
+      "novForecast": "15-25",
+      "decNormal": 7,
+      "decForecast": "06-08",
+      "janNormal": 12,
+      "janForecast": "10-14",
+      "soilMoistureNov": "25-35%"
+    },
+    {
+      "divisionEn": "Barishal",
+      "divisionBn": "বরিশাল",
+      "novNormal": 44,
+      "novForecast": "30-40",
+      "decNormal": 6,
+      "decForecast": "04-08",
+      "janNormal": 9,
+      "janForecast": "08-10",
+      "soilMoistureNov": "30-40%"
+    }
+  ],
+  "previousMonthReview": {
+    "monthEn": "October 2026",
+    "monthBn": "অক্টোবর ২০২৬",
+    "monsoonWithdrawalDate": "09 October 2026",
+    "rainfallDeficitPct": "68.0%",
+    "cyclonicSystems": "2 low pressure systems formed over the Bay of Bengal, 1 intensified into Cyclonic Storm 'Arnab' crossing Andhra Pradesh coast.",
+    "highestDailyRainfall": "64 mm at Srimangal (Sylhet) on 02 October 2026",
+    "highestTemp": "37.8°C at Sylhet on 17 October 2026",
+    "lowestTemp": "15.4°C at Tetulia on 27 October 2026",
+    "soiIndices": "+12.5, +0.1, +9.9, +11.0, +8.9, -11.2, -14.5, -24.9, -29.1, -14.6, -21.4, -14.1"
+  }
+}
+

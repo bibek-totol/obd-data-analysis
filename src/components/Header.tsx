@@ -22,14 +22,15 @@ export default function Header({
 
   const isBmdLiveForecast = activeSection === 'bmd-live-forecast';
   const isBmdLiveWarnings = activeSection === 'bmd-live-warnings';
-  const isBmdLive = isBmdLiveForecast || isBmdLiveWarnings;
+  const isBmdLiveOutlook = activeSection === 'bmd-live-outlook';
+  const isBmdLive = isBmdLiveForecast || isBmdLiveWarnings || isBmdLiveOutlook;
   const isBmd = activeSection === 'bmd-forecast';
   const isBamisBulletin = activeSection === 'bamis-bulletin';
   const isBamisNational = activeSection === 'bamis-national';
   const isBamis = isBamisBulletin || isBamisNational;
 
-  const themeColor = isBmdLiveWarnings ? '#dc2626' : isBmdLive ? '#1d76a2' : isBmd ? '#0369a1' : isBamis ? '#0c713e' : '#006a4e';
-  const themeHoverColor = isBmdLiveWarnings ? '#b91c1c' : isBmdLive ? '#165c7f' : isBmd ? '#075985' : isBamis ? '#084f2b' : '#00523d';
+  const themeColor = isBmdLiveWarnings ? '#dc2626' : isBmdLiveOutlook ? '#0284c7' : isBmdLive ? '#1d76a2' : isBmd ? '#0369a1' : isBamis ? '#0c713e' : '#006a4e';
+  const themeHoverColor = isBmdLiveWarnings ? '#b91c1c' : isBmdLiveOutlook ? '#0369a1' : isBmdLive ? '#165c7f' : isBmd ? '#075985' : isBamis ? '#084f2b' : '#00523d';
 
   return (
     <header style={{
@@ -141,7 +142,9 @@ export default function Header({
               overflow: 'hidden',
               textOverflow: 'ellipsis'
             }}>
-              {isBmdLiveWarnings
+              {isBmdLiveOutlook
+                ? 'Three-Month Long Range Climate Outlook (server6.bmd.gov.bd)'
+                : isBmdLiveWarnings
                 ? 'Severe Weather Warnings (server6.bmd.gov.bd)'
                 : isBmdLive
                 ? 'Bangladesh Meteorological Department (BMD Live)'
@@ -161,7 +164,9 @@ export default function Header({
               overflow: 'hidden',
               textOverflow: 'ellipsis'
             }}>
-              {isBmdLiveWarnings
+              {isBmdLiveOutlook
+                ? 'Expert Committee Long-Range Seasonal Climate Outlook • server6.bmd.gov.bd • BMD Dhaka'
+                : isBmdLiveWarnings
                 ? 'Storm Warning Center (SWC) • Marine, Inland Riverport & Special Weather Bulletins • server6.bmd.gov.bd'
                 : isBmdLive
                 ? 'National Weather Forecasting Center • server6.bmd.gov.bd • Govt. of Bangladesh'
@@ -182,7 +187,9 @@ export default function Header({
           onClick={onReload}
           disabled={isLoading}
           id={
-            isBmdLiveWarnings
+            isBmdLiveOutlook
+              ? 'btn-reload-latest-bmd-live-outlook'
+              : isBmdLiveWarnings
               ? 'btn-reload-latest-bmd-live-warnings'
               : isBmdLive
               ? 'btn-reload-latest-bmd-live'
@@ -201,7 +208,9 @@ export default function Header({
               : 'btn-reload-latest-advisory'
           }
           title={
-            isBmdLiveWarnings
+            isBmdLiveOutlook
+              ? 'Click to fetch fresh three-month seasonal climate outlook from server6.bmd.gov.bd'
+              : isBmdLiveWarnings
               ? 'Click to fetch fresh severe weather warnings from server6.bmd.gov.bd'
               : isBmdLive
               ? 'Click to fetch fresh real-time observation from server6.bmd.gov.bd'
@@ -251,6 +260,8 @@ export default function Header({
           <span className="hide-on-mobile">
             {isLoading
               ? 'Fetching...'
+              : isBmdLiveOutlook
+              ? 'Reload Outlook'
               : isBmdLiveWarnings
               ? 'Reload Warnings'
               : isBmdLive

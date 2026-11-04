@@ -208,20 +208,6 @@ export default function BmdLiveSection({ initialStationId }: BmdLiveSectionProps
       }}>
         {/* Left: Branding & Subtitle */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            width: '44px',
-            height: '44px',
-            borderRadius: '10px',
-            background: 'linear-gradient(135deg, #1d6e99 0%, #2b87b1 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#ffffff',
-            boxShadow: '0 4px 10px rgba(43, 135, 177, 0.3)',
-            flexShrink: 0
-          }}>
-            <CloudSun size={24} color="#fad81f" />
-          </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <h1 style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em', margin: 0 }}>

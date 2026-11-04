@@ -216,3 +216,24 @@ Data is harvested directly from the NLAS backend services (`https://nlas.dls.gov
      - **Dynamic Filtering & Search**: Filter by status (`All (8)`, `Active Alerts Only`, `Normal / Cleared`), real-time search, and dual view switcher (Cards Grid vs Comparison Table).
      - **In-App Official PDF Viewer & Language Switch**: Modal reader supporting bilingual PDFs (Bangla / English) with direct download and portal link outs.
      - **On-Demand Synchronization**: Zero background polling loops; triggered via dedicated `Reload Warnings` button in the section and top Header.
+
+    - **Three-Month Climate Outlook Section (`/bmd-live/three-month-outlook`, `/bmd-live/outlook`, `/bmd-live-outlook`, `/server6/outlook`)**:
+      - Upstream data directly harvested from official BMD server6 seasonal forecast circular (`/en/p/Three-Month-Outlook` & `/bn/p/Three-Month-Outlook`).
+      - **Authentic Executive Header & Circular Meta Card**:
+        - Compiled by the BMD Expert Committee chaired by the Director of BMD (`Ref: 23.09.2680.172.43.002.25.2672`, dated `01 November 2026`).
+        - Validity period covering the entire upcoming trimester: November 2026, December 2026, and January 2027.
+      - **5 Major Seasonal Hazard Directive Cards**:
+        1. Rainfall Outlook: Overall normal precipitation across Bangladesh.
+        2. Bay of Bengal Depressions & Cyclones: 2–4 depressions, with 1–2 intensifying into cyclonic storms.
+        3. Winter Cold Waves: 4–6 cold waves across northern, western, and central Bangladesh, including 2–3 moderate-to-severe cold waves (4°C–6°C).
+        4. Dense Fog & Riverine Visibility: Moderate to dense fog in late midnight till morning hours from December through January.
+        5. Diurnal Temperatures & Day/Night Variance: Day and night temperatures expected to remain normal to slightly above normal.
+      - **Division-Wise Quantitative Climatology Table (All 8 Divisions)**:
+        - November, December, January normal rainfall vs forecast rainfall ranges (mm), percentage deviation, and soil moisture % for Dhaka, Chattogram, Rajshahi, Khulna, Barishal, Sylhet, Rangpur, and Mymensingh.
+        - Interactive division filter selector and search bar.
+      - **Previous Month Performance Review (October 2026 Climatology)**:
+        - Detailed synoptic review including Southern Oscillation Index (SOI: +0.4, Neutral/La Niña transition), rainfall statistics (-22.4% deficit), and Severe Cyclonic Storm "Arnab".
+      - **In-App Bilingual Official Circular PDF Viewer Modal**:
+        - Direct modal reader supporting authentic bilingual circular PDFs (`211674.pdf` Bangla, `211673.pdf` English), language toggle, and official download links.
+      - **On-Demand Dynamic Synchronization**:
+        - Upstream proxy via `/api/bmd-live/outlook?reload=true` with 15-minute SWR caching, instant cache-busting, zero polling loops, and full offline fallback (`bmd-live-outlook-fallback.json`).

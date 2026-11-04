@@ -28,7 +28,6 @@ import {
   X,
   Calendar,
   Globe,
-  BellRing,
   Sparkles,
   SlidersHorizontal,
   ChevronRight,
@@ -37,27 +36,27 @@ import {
 import { useDashboard } from '@/context/DashboardContext';
 
 // Icon mapper helper
-function getWarningIcon(iconName: string, size = 20, className = '') {
-  switch (iconName) {
-    case 'Anchor':
-      return <Anchor size={size} className={className} />;
-    case 'Ship':
-      return <Ship size={size} className={className} />;
-    case 'CloudRain':
-      return <CloudRain size={size} className={className} />;
-    case 'Zap':
-      return <Zap size={size} className={className} />;
-    case 'Wind':
-      return <Wind size={size} className={className} />;
-    case 'Flame':
-      return <Flame size={size} className={className} />;
-    case 'CloudFog':
-      return <CloudFog size={size} className={className} />;
-    case 'AlertTriangle':
-    default:
-      return <AlertTriangle size={size} className={className} />;
-  }
-}
+// function getWarningIcon(iconName: string, size = 20, className = '') {
+//   switch (iconName) {
+//     case 'Anchor':
+//       return <Anchor size={size} className={className} />;
+//     case 'Ship':
+//       return <Ship size={size} className={className} />;
+//     case 'CloudRain':
+//       return <CloudRain size={size} className={className} />;
+//     case 'Zap':
+//       return <Zap size={size} className={className} />;
+//     case 'Wind':
+//       return <Wind size={size} className={className} />;
+//     case 'Flame':
+//       return <Flame size={size} className={className} />;
+//     case 'CloudFog':
+//       return <CloudFog size={size} className={className} />;
+//     case 'AlertTriangle':
+//     default:
+//       return <AlertTriangle size={size} className={className} />;
+//   }
+// }
 
 // Convert English digits to Bengali digits
 function toBengaliNumeral(num: number | string): string {
@@ -205,40 +204,6 @@ export default function BmdLiveWarningsSection() {
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', position: 'relative', zIndex: 1 }}>
           <div style={{ maxWidth: '820px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px', flexWrap: 'wrap' }}>
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  backgroundColor: 'rgba(239, 68, 68, 0.25)',
-                  border: '1px solid rgba(239, 68, 68, 0.5)',
-                  color: '#fecaca',
-                  padding: '4px 10px',
-                  borderRadius: '20px',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em'
-                }}
-              >
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#ef4444', animation: 'pulse 1.5s infinite' }} />
-                {lang === 'bn' ? 'ঝড় সতর্কীকরণ কেন্দ্র (SWC)' : 'Storm Warning Center (SWC)'}
-              </span>
-              <span
-                style={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                  color: '#e2e8f0',
-                  padding: '4px 10px',
-                  borderRadius: '20px',
-                  fontSize: '11px',
-                  fontWeight: 600
-                }}
-              >
-                server6.bmd.gov.bd
-              </span>
-            </div>
-
             <h1 style={{ fontSize: 'clamp(20px, 4vw, 28px)', fontWeight: 800, margin: '0 0 6px 0', lineHeight: 1.25, letterSpacing: '-0.02em' }}>
               {lang === 'bn' ? 'দুর্যোগ ও বিশেষ আবহাওয়া সতর্কবার্তা বুলেটিন' : 'Severe Weather Warnings & Special Bulletins'}
             </h1>
@@ -324,46 +289,6 @@ export default function BmdLiveWarningsSection() {
             </button>
           </div>
         </div>
-
-        {/* Breaking News Marquee Banner */}
-        <div
-          style={{
-            marginTop: '20px',
-            backgroundColor: 'rgba(239, 68, 68, 0.15)',
-            border: '1px solid rgba(239, 68, 68, 0.35)',
-            borderRadius: '10px',
-            padding: '10px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            position: 'relative',
-            zIndex: 1
-          }}
-        >
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              backgroundColor: '#ef4444',
-              color: '#ffffff',
-              padding: '4px 10px',
-              borderRadius: '6px',
-              fontSize: '11px',
-              fontWeight: 800,
-              letterSpacing: '0.04em',
-              flexShrink: 0
-            }}
-          >
-            <BellRing size={13} />
-            {lang === 'bn' ? 'জরুরি বুলেটিন' : 'EMERGENCY ALERT'}
-          </div>
-          <div style={{ fontSize: '13px', color: '#fef2f2', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-            {lang === 'bn'
-              ? (data?.breakingNewsBn || 'বঙ্গোপসাগরে সৃষ্ট নিম্নচাপের প্রভাবে চট্টগ্রাম, কক্সবাজার, মোংলা ও পায়রা সমুদ্রবন্দরসমূহকে ৩ (তিন) নম্বর স্থানীয় সতর্ক সংকেত দেখাতে বলা হয়েছে।')
-              : (data?.breakingNewsEn || 'Local Cautionary Signal No. 3 (Three) for Chattogram, Cox\'s Bazar, Mongla & Payra Maritime Ports due to cyclone "Murasu" depression in Bay of Bengal.')}
-          </div>
-        </div>
       </div>
 
       {/* Sync Status Badge & Notification */}
@@ -403,21 +328,7 @@ export default function BmdLiveWarningsSection() {
             gap: '14px'
           }}
         >
-          <div
-            style={{
-              width: '46px',
-              height: '46px',
-              borderRadius: '10px',
-              backgroundColor: activeCount > 0 ? '#fee2e2' : '#ecfdf5',
-              color: activeCount > 0 ? '#dc2626' : '#059669',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0
-            }}
-          >
-            <ShieldAlert size={24} />
-          </div>
+
           <div>
             <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               {lang === 'bn' ? 'সক্রিয় সতর্কতা বুলেটিন' : 'Active Warning Bulletins'}
@@ -444,21 +355,7 @@ export default function BmdLiveWarningsSection() {
             gap: '14px'
           }}
         >
-          <div
-            style={{
-              width: '46px',
-              height: '46px',
-              borderRadius: '10px',
-              backgroundColor: '#e0f2fe',
-              color: '#0284c7',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0
-            }}
-          >
-            <Anchor size={24} />
-          </div>
+
           <div>
             <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               {lang === 'bn' ? 'সমুদ্রবন্দর সংকেত' : 'Maritime Ports'}
@@ -485,21 +382,7 @@ export default function BmdLiveWarningsSection() {
             gap: '14px'
           }}
         >
-          <div
-            style={{
-              width: '46px',
-              height: '46px',
-              borderRadius: '10px',
-              backgroundColor: '#fef3c7',
-              color: '#d97706',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0
-            }}
-          >
-            <Ship size={24} />
-          </div>
+
           <div>
             <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               {lang === 'bn' ? 'অভ্যন্তরীণ নদীবন্দর' : 'Inland River Ports'}
@@ -526,21 +409,7 @@ export default function BmdLiveWarningsSection() {
             gap: '14px'
           }}
         >
-          <div
-            style={{
-              width: '46px',
-              height: '46px',
-              borderRadius: '10px',
-              backgroundColor: '#ecfdf5',
-              color: '#059669',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0
-            }}
-          >
-            <CheckCircle2 size={24} />
-          </div>
+
           <div>
             <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               {lang === 'bn' ? 'স্বাভাবিক সতর্কতাহীন খাত' : 'Normal / Cleared Domains'}
@@ -815,7 +684,7 @@ export default function BmdLiveWarningsSection() {
                 {/* Card Body */}
                 <div style={{ padding: '16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '12px' }}>
-                    <div
+                    {/* <div
                       style={{
                         width: '40px',
                         height: '40px',
@@ -829,7 +698,7 @@ export default function BmdLiveWarningsSection() {
                       }}
                     >
                       {getWarningIcon(item.icon, 20)}
-                    </div>
+                    </div> */}
                     <div>
                       <h3 style={{ margin: '0 0 2px 0', fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
                         {lang === 'bn' ? item.nameBn : item.nameEn}
@@ -984,9 +853,9 @@ export default function BmdLiveWarningsSection() {
                     >
                       <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0f172a' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ color: item.hasActiveWarning ? '#dc2626' : '#0f4c75' }}>
+                          {/* <span style={{ color: item.hasActiveWarning ? '#dc2626' : '#0f4c75' }}>
                             {getWarningIcon(item.icon, 16)}
-                          </span>
+                          </span> */}
                           <div>
                             <div>{lang === 'bn' ? item.nameBn : item.nameEn}</div>
                             <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 400 }}>
@@ -1157,7 +1026,7 @@ export default function BmdLiveWarningsSection() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div
+                {/* <div
                   style={{
                     width: '36px',
                     height: '36px',
@@ -1170,7 +1039,7 @@ export default function BmdLiveWarningsSection() {
                   }}
                 >
                   {getWarningIcon(selectedWarningModal.icon, 18)}
-                </div>
+                </div> */}
                 <div>
                   <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
                     {lang === 'bn' ? selectedWarningModal.nameBn : selectedWarningModal.nameEn} — {lang === 'bn' ? 'অফিসিয়াল বুলেটিন' : 'Official Bulletin'}

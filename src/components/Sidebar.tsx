@@ -17,11 +17,12 @@ import {
   Compass,
   Sprout,
   BookOpen,
+  CalendarDays,
   X
 } from 'lucide-react';
 import { useDashboard } from '@/context/DashboardContext';
 
-export type ActiveSection = 'forecast' | 'advisory' | 'weather-alert' | 'flood-magnitude' | 'bmd-forecast' | 'bamis-bulletin' | 'bamis-national' | 'bmd-live-forecast' | 'bmd-live-warnings';
+export type ActiveSection = 'forecast' | 'advisory' | 'weather-alert' | 'flood-magnitude' | 'bmd-forecast' | 'bamis-bulletin' | 'bamis-national' | 'bmd-live-forecast' | 'bmd-live-warnings' | 'bmd-live-outlook';
 
 interface WebsiteItem {
   id: string;
@@ -56,7 +57,9 @@ export default function Sidebar({
 
   // Automatically determine active section from route
   let effectiveActiveSection: ActiveSection = activeSection || 'forecast';
-  if (pathname.startsWith('/bmd-live/warnings') || pathname.startsWith('/bmd-live-warnings') || pathname.startsWith('/server6/warnings')) {
+  if (pathname.startsWith('/bmd-live/three-month-outlook') || pathname.startsWith('/bmd-live/outlook') || pathname.startsWith('/bmd-live-outlook') || pathname.startsWith('/server6/outlook')) {
+    effectiveActiveSection = 'bmd-live-outlook';
+  } else if (pathname.startsWith('/bmd-live/warnings') || pathname.startsWith('/bmd-live-warnings') || pathname.startsWith('/server6/warnings')) {
     effectiveActiveSection = 'bmd-live-warnings';
   } else if (pathname.startsWith('/bmd-live') || pathname.startsWith('/server6')) {
     effectiveActiveSection = 'bmd-live-forecast';
@@ -173,6 +176,13 @@ export default function Sidebar({
           label: 'Severe Weather Warnings',
           icon: AlertTriangle,
           badge: 'Alert'
+        },
+        {
+          id: 'bmd-live-outlook',
+          href: '/bmd-live/three-month-outlook',
+          label: 'Three-Month Outlook',
+          icon: CalendarDays,
+          badge: 'Season'
         }
       ]
     }
