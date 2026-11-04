@@ -105,6 +105,14 @@ Data is harvested directly from the NLAS backend services (`https://nlas.dls.gov
 - **`src/app/bamis/[districtId]/page.tsx`**: Dedicated dynamic route page for single district Agromet Bulletins (`/bamis/[districtId]`, e.g. `/bamis/37` for Dhaka, `/bamis/57` for Chattogram).
 - **`src/app/bmd-forecast/page.tsx`**: Redirect route sending `/bmd-forecast` to `/bmd`.
 - **`src/app/bamis-bulletin/page.tsx`**: Redirect route sending `/bamis-bulletin` to `/bamis`.
+- **`src/lib/ffwc-client.ts`**: Dedicated FFWC client library with TypeScript interfaces, status calculators (`Normal`, `Warning`, `Flood`, `Severe Flood`), trend evaluators, SWR caching, and 40-day history fetcher.
+- **`src/lib/ffwc-fallback.json`**: Authentic fallback dataset covering 153 hydrological stations, 127 recent observations, 7-day district alert matrix, 29 medium-range forecast stations, and 81 rainfall stations.
+- **`src/app/api/ffwc/route.ts`**: API endpoint for FFWC data aggregation and 40-day station water levels (`/api/ffwc`).
+- **`src/components/FfwcSection.tsx`**: Complete FFWC intelligence container featuring Flood Alert & Magnitude, Hydrograph & River Stages, Observed Water Level with 40-day history modal, and Forecast & Map Layers.
+- **`src/app/ffwc/page.tsx`**: Dedicated page route for FFWC Flood Alert & Magnitude (`/ffwc`).
+- **`src/app/ffwc/hydrograph/page.tsx`**: Dedicated page route for FFWC Hydrograph & River Stages (`/ffwc/hydrograph`).
+- **`src/app/ffwc/observed-water-level/page.tsx`**: Dedicated page route for FFWC Observed Water Level (`/ffwc/observed-water-level`).
+- **`src/app/ffwc/forecast-maps/page.tsx`**: Dedicated page route for FFWC Forecast & Map Layers (`/ffwc/forecast-maps`).
 - **`src/app/globals.css`**: Design tokens, typography (Inter & Hind Siliguri), smooth animations, and scrollbars.
 
 ---
@@ -237,3 +245,35 @@ Data is harvested directly from the NLAS backend services (`https://nlas.dls.gov
         - Direct modal reader supporting authentic bilingual circular PDFs (`211674.pdf` Bangla, `211673.pdf` English), language toggle, and official download links.
       - **On-Demand Dynamic Synchronization**:
         - Upstream proxy via `/api/bmd-live/outlook?reload=true` with 15-minute SWR caching, instant cache-busting, zero polling loops, and full offline fallback (`bmd-live-outlook-fallback.json`).
+
+5. **FFWC Portal (BWDB)** (`https://ffwc.gov.bd/app/home`):
+   - **Flood Forecasting & Warning Centre (BWDB)**:
+     - Real-time hydrological intelligence directly harvested from `https://api.ffwc.gov.bd/data_load/` using security header `x-ffwc-internal-key: FFWC-Project-2026-Secure-V1`.
+     - **Four Sub-sections**:
+       1. **Flood Alert & Magnitude (`/ffwc`, `/ffwc/alerts`, `/ffwc/flood-magnitude`)**:
+          - National hydrological status overview with 153 monitored stations across 4 river basins (Brahmaputra, Ganges, Meghna, South Eastern Hill).
+          - District selector & real-time search across all 64 districts.
+          - Status categorization:
+            - `Normal`: Water level > 50 cm below Danger Level.
+            - `Warning`: Water level within 50 cm below Danger Level (`diff >= -0.5m`).
+            - `Flood`: Water level at or above Danger Level (`diff >= 0m`).
+            - `Severe Flood`: Water level 1 meter or more above Danger Level (`diff >= 1.0m`).
+            - `N/A`: Station offline or data not available.
+          - **Farmer OBD Filter**: One-click toggle "কৃষক OBD প্রাসঙ্গিক অ্যালার্ট" (`Farmer OBD Relevant Active Status`) filtering down to only districts with active Warning, Flood, or Severe Flood levels for rapid rural advisory dispatch.
+          - 7-Day district flood outlook matrix displaying day-by-day forecasted alert status.
+       2. **Hydrograph & River Stages (`/ffwc/hydrograph`)**:
+          - River filter (Jamuna, Padma, Meghna, Surma, Kushiyara, Teesta, Dharla, Brahmaputra, Old Brahmaputra, etc.), District filter, and Station search.
+          - Forecast range switcher: Short Range (5-Day), Medium Range (10-Day), and Monsoon forecast views.
+          - High-precision interactive SVG hydrograph chart plotting observed water level curve, Danger Level (DL) red dashed threshold, Recorded Highest Water Level (RHWL) purple threshold, and interactive tooltips.
+          - Quick inspection of 40-day time-series readings.
+       3. **Observed Water Level (`/ffwc/observed-water-level`, `/ffwc/observed`)**:
+          - High-density searchable table of all 153 stations with River name, District, Basin, Danger Level (DL), Recorded Highest Water Level (RHWL), Observed Water Level, Difference from DL (m), and Trend (Rising ↑, Falling ↓, Steady →).
+          - Status filter (`All`, `Normal`, `Warning`, `Flood`, `Severe Flood`) and Trend filter (`All`, `Rising`, `Falling`, `Steady`).
+          - Deep inspection modal: clicking "40 দিনের হিস্ট্রি" opens 40-day historical water level time-series table and spline trend chart.
+       4. **Forecast & Outlook (`/ffwc/forecast-maps`, `/ffwc/maps`)**:
+          - Hydrological Outlook & Basin Forecast Trends analytics (Improving, Worsening, New Alerts, Persisting Severe flood districts).
+          - 10-Day Medium Range quantitative river stage forecast table across 29 key monitoring stations with searchable station and river filters.
+          - 81-Station Rainfall Observation table covering BWDB rain gauge network with 24-hour precipitation amounts, rainfall intensity badges, and river basin filters.
+          - Official FFWC bulletin summary & synoptic river basin outlook.
+     - **On-Demand Dynamic Synchronization**:
+       - Next.js route handler `/api/ffwc` proxying upstream endpoints with 15-minute SWR caching, instant reload via `?reload=true`, and full fallback dataset (`src/lib/ffwc-fallback.json`).

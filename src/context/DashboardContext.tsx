@@ -32,7 +32,15 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
   // Derive active section from the current URL pathname
   let activeSection: ActiveSection = 'forecast';
-  if (pathname.startsWith('/bmd-live/three-month-outlook') || pathname.startsWith('/bmd-live/outlook') || pathname.startsWith('/bmd-live-outlook') || pathname.startsWith('/server6/outlook')) {
+  if (pathname.startsWith('/ffwc/hydrograph')) {
+    activeSection = 'ffwc-hydrograph';
+  } else if (pathname.startsWith('/ffwc/observed-water-level') || pathname.startsWith('/ffwc/observed')) {
+    activeSection = 'ffwc-observed';
+  } else if (pathname.startsWith('/ffwc/forecast-maps') || pathname.startsWith('/ffwc/maps')) {
+    activeSection = 'ffwc-forecast-maps';
+  } else if (pathname.startsWith('/ffwc')) {
+    activeSection = 'ffwc-alert';
+  } else if (pathname.startsWith('/bmd-live/three-month-outlook') || pathname.startsWith('/bmd-live/outlook') || pathname.startsWith('/bmd-live-outlook') || pathname.startsWith('/server6/outlook')) {
     activeSection = 'bmd-live-outlook';
   } else if (pathname.startsWith('/bmd-live/warnings') || pathname.startsWith('/bmd-live-warnings') || pathname.startsWith('/server6/warnings')) {
     activeSection = 'bmd-live-warnings';

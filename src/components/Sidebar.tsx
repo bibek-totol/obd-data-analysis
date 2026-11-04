@@ -18,11 +18,14 @@ import {
   Sprout,
   BookOpen,
   CalendarDays,
+  Activity,
+  Droplets,
+  Map,
   X
 } from 'lucide-react';
 import { useDashboard } from '@/context/DashboardContext';
 
-export type ActiveSection = 'forecast' | 'advisory' | 'weather-alert' | 'flood-magnitude' | 'bmd-forecast' | 'bamis-bulletin' | 'bamis-national' | 'bmd-live-forecast' | 'bmd-live-warnings' | 'bmd-live-outlook';
+export type ActiveSection = 'forecast' | 'advisory' | 'weather-alert' | 'flood-magnitude' | 'bmd-forecast' | 'bamis-bulletin' | 'bamis-national' | 'bmd-live-forecast' | 'bmd-live-warnings' | 'bmd-live-outlook' | 'ffwc-alert' | 'ffwc-hydrograph' | 'ffwc-observed' | 'ffwc-forecast-maps';
 
 interface WebsiteItem {
   id: string;
@@ -57,7 +60,15 @@ export default function Sidebar({
 
   // Automatically determine active section from route
   let effectiveActiveSection: ActiveSection = activeSection || 'forecast';
-  if (pathname.startsWith('/bmd-live/three-month-outlook') || pathname.startsWith('/bmd-live/outlook') || pathname.startsWith('/bmd-live-outlook') || pathname.startsWith('/server6/outlook')) {
+  if (pathname.startsWith('/ffwc/hydrograph')) {
+    effectiveActiveSection = 'ffwc-hydrograph';
+  } else if (pathname.startsWith('/ffwc/observed-water-level') || pathname.startsWith('/ffwc/observed')) {
+    effectiveActiveSection = 'ffwc-observed';
+  } else if (pathname.startsWith('/ffwc/forecast-maps') || pathname.startsWith('/ffwc/maps')) {
+    effectiveActiveSection = 'ffwc-forecast-maps';
+  } else if (pathname.startsWith('/ffwc')) {
+    effectiveActiveSection = 'ffwc-alert';
+  } else if (pathname.startsWith('/bmd-live/three-month-outlook') || pathname.startsWith('/bmd-live/outlook') || pathname.startsWith('/bmd-live-outlook') || pathname.startsWith('/server6/outlook')) {
     effectiveActiveSection = 'bmd-live-outlook';
   } else if (pathname.startsWith('/bmd-live/warnings') || pathname.startsWith('/bmd-live-warnings') || pathname.startsWith('/server6/warnings')) {
     effectiveActiveSection = 'bmd-live-warnings';
@@ -185,6 +196,43 @@ export default function Sidebar({
           badge: 'Season'
         }
       ]
+    },
+    {
+      id: 'ffwc',
+      name: 'FFWC Portal (BWDB)',
+      domain: 'ffwc.gov.bd',
+      active: true,
+      themeColor: '#0891b2',
+      subsections: [
+        {
+          id: 'ffwc-alert',
+          href: '/ffwc',
+          label: 'Flood Alert & Magnitude',
+          icon: Waves,
+          badge: 'Live'
+        },
+        {
+          id: 'ffwc-hydrograph',
+          href: '/ffwc/hydrograph',
+          label: 'Hydrograph & River Stages',
+          icon: Activity,
+          badge: 'Forecast'
+        },
+        {
+          id: 'ffwc-observed',
+          href: '/ffwc/observed-water-level',
+          label: 'Observed Water Level',
+          icon: Droplets,
+          badge: 'Live'
+        },
+        {
+          id: 'ffwc-forecast-maps',
+          href: '/ffwc/forecast-maps',
+          label: 'Forecast & Map Layers',
+          icon: Map,
+          badge: 'Maps'
+        }
+      ]
     }
   ]);
 
@@ -192,7 +240,8 @@ export default function Sidebar({
     nlas: true,
     bmd: true,
     bamis: true,
-    'bmd-live': true
+    'bmd-live': true,
+    ffwc: true
   });
 
   const toggleSite = (siteId: string) => {
@@ -206,7 +255,12 @@ export default function Sidebar({
     let gradient = 'linear-gradient(135deg, #006a4e 0%, #004d37 100%)';
     let shadowColor = 'rgba(0, 106, 78, 0.25)';
 
-    if (site.id === 'bmd-live') {
+    if (site.id === 'ffwc') {
+      topText = 'FFWC';
+      subText = 'BD';
+      gradient = 'linear-gradient(135deg, #0e7490 0%, #0891b2 100%)';
+      shadowColor = 'rgba(8, 145, 178, 0.25)';
+    } else if (site.id === 'bmd-live') {
       topText = 'BMD';
       subText = 'LIVE';
       gradient = 'linear-gradient(135deg, #1d6e99 0%, #2586b6 100%)';
@@ -223,8 +277,8 @@ export default function Sidebar({
       shadowColor = 'rgba(3, 105, 161, 0.25)';
     }
 
-    const topFontSize = site.id === 'bamis' ? '9px' : '10px';
-    const topLetterSpacing = site.id === 'bamis' ? '-0.02em' : '0.02em';
+    const topFontSize = site.id === 'ffwc' ? '8px' : site.id === 'bamis' ? '9px' : '10px';
+    const topLetterSpacing = site.id === 'ffwc' ? '-0.02em' : site.id === 'bamis' ? '-0.02em' : '0.02em';
 
     return (
       <div
@@ -250,7 +304,7 @@ export default function Sidebar({
         <span style={{
           fontSize: '7px',
           fontWeight: 700,
-          color: site.id.startsWith('bmd') ? '#e0f2fe' : '#bbf7d0',
+          color: site.id === 'ffwc' ? '#cffafe' : site.id.startsWith('bmd') ? '#e0f2fe' : '#bbf7d0',
           letterSpacing: '0.04em',
           marginTop: '1.5px'
         }}>
@@ -268,6 +322,7 @@ export default function Sidebar({
           const isExpanded = isDrawer ? true : !!expandedSites[site.id];
           const isCurrentSite = site.subsections.some(sub => sub.id === effectiveActiveSection);
           const isBmdTheme = site.id.startsWith('bmd');
+          const isFfwcTheme = site.id === 'ffwc';
 
           return (
             <div
@@ -275,12 +330,12 @@ export default function Sidebar({
               style={{
                 backgroundColor: '#ffffff',
                 border: isCurrentSite
-                  ? (isBmdTheme ? '1px solid #bae6fd' : '1px solid #bbf7d0')
+                  ? (isFfwcTheme ? '1px solid #a5f3fc' : isBmdTheme ? '1px solid #bae6fd' : '1px solid #bbf7d0')
                   : '1px solid #e2e8f0',
                 borderRadius: '12px',
                 overflow: 'hidden',
                 boxShadow: isCurrentSite
-                  ? (isBmdTheme ? '0 2px 8px rgba(3, 105, 161, 0.08)' : '0 2px 8px rgba(0, 106, 78, 0.08)')
+                  ? (isFfwcTheme ? '0 2px 8px rgba(8, 145, 178, 0.08)' : isBmdTheme ? '0 2px 8px rgba(3, 105, 161, 0.08)' : '0 2px 8px rgba(0, 106, 78, 0.08)')
                   : 'none',
                 transition: 'all 0.2s ease'
               }}
@@ -296,10 +351,10 @@ export default function Sidebar({
                   justifyContent: (!isDrawer && isCollapsed) ? 'center' : 'space-between',
                   cursor: (!isDrawer && isCollapsed) ? 'default' : 'pointer',
                   backgroundColor: isCurrentSite
-                    ? (isBmdTheme ? '#f0f9ff' : '#f0fdf4')
+                    ? (isFfwcTheme ? '#ecfeff' : isBmdTheme ? '#f0f9ff' : '#f0fdf4')
                     : '#ffffff',
                   borderBottom: (isDrawer || !isCollapsed) && isExpanded
-                    ? (isCurrentSite ? (isBmdTheme ? '1px solid #e0f2fe' : '1px solid #dcfce7') : '1px solid #f1f5f9')
+                    ? (isCurrentSite ? (isFfwcTheme ? '1px solid #cffafe' : isBmdTheme ? '1px solid #e0f2fe' : '1px solid #dcfce7') : '1px solid #f1f5f9')
                     : 'none',
                   transition: 'background-color 0.15s ease'
                 }}
@@ -311,7 +366,7 @@ export default function Sidebar({
                       <div style={{
                         fontSize: '13px',
                         fontWeight: 700,
-                        color: isCurrentSite ? (isBmdTheme ? '#0369a1' : '#0c713e') : '#0f172a',
+                        color: isCurrentSite ? (isFfwcTheme ? '#0891b2' : isBmdTheme ? '#0369a1' : '#0c713e') : '#0f172a',
                         lineHeight: 1.2
                       }}>
                         {site.name}
@@ -328,7 +383,7 @@ export default function Sidebar({
                 </div>
 
                 {(isDrawer || !isCollapsed) && (
-                  <div style={{ color: isCurrentSite ? (isBmdTheme ? '#0284c7' : '#15803d') : '#94a3b8' }}>
+                  <div style={{ color: isCurrentSite ? (isFfwcTheme ? '#0891b2' : isBmdTheme ? '#0284c7' : '#15803d') : '#94a3b8' }}>
                     {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                   </div>
                 )}
@@ -362,11 +417,11 @@ export default function Sidebar({
                           borderRadius: '8px',
                           backgroundColor: isSelected ? '#ffffff' : 'transparent',
                           border: isSelected
-                            ? (isAlert ? '1px solid #fca5a5' : isBmdTheme ? '1px solid #7dd3fc' : '1px solid #86efac')
+                            ? (isAlert ? '1px solid #fca5a5' : isFfwcTheme ? '1px solid #67e8f9' : isBmdTheme ? '1px solid #7dd3fc' : '1px solid #86efac')
                             : '1px solid transparent',
                           boxShadow: isSelected ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
                           color: isSelected
-                            ? (isAlert ? '#dc2626' : isBmdTheme ? '#0284c7' : '#006a4e')
+                            ? (isAlert ? '#dc2626' : isFfwcTheme ? '#0891b2' : isBmdTheme ? '#0284c7' : '#006a4e')
                             : '#475569',
                           fontWeight: isSelected ? 700 : 500,
                           fontSize: '12.5px',
@@ -385,10 +440,10 @@ export default function Sidebar({
                             padding: '2px 7px',
                             borderRadius: '10px',
                             backgroundColor: isSelected
-                              ? (isAlert ? '#fee2e2' : isBmdTheme ? '#e0f2fe' : '#dcfce7')
+                              ? (isAlert ? '#fee2e2' : isFfwcTheme ? '#cffafe' : isBmdTheme ? '#e0f2fe' : '#dcfce7')
                               : (isAlert ? '#fee2e2' : '#f1f5f9'),
                             color: isSelected
-                              ? (isAlert ? '#b91c1c' : isBmdTheme ? '#0284c7' : '#15803d')
+                              ? (isAlert ? '#b91c1c' : isFfwcTheme ? '#0e7490' : isBmdTheme ? '#0284c7' : '#15803d')
                               : (isAlert ? '#b91c1c' : '#64748b')
                           }}>
                             {sub.badge}
