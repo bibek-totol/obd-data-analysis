@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NLAS Platform — Visual Interactive Sitemap</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    * {
+      scroll-behavior: smooth;
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    .badge-live {
+      background-color: #dcfce7;
+      color: #15803d;
+      border: 1px solid #bbf7d0;
+    }
+
+    .badge-dynamic {
+      background-color: #e0e7ff;
+      color: #4338ca;
+      border: 1px solid #c7d2fe;
+    }
+
+    .badge-redirect {
+      background-color: #fef3c7;
+      color: #b45309;
+      border: 1px solid #fde68a;
+    }
+
+    .badge-api {
+      background-color: #ffedd5;
+      color: #c2410c;
+      border: 1px solid #fed7aa;
+    }
+
+    .node-card {
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .node-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+    }
+
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+
+      body {
+        background: #ffffff !important;
+        padding: 0 !important;
+      }
+    }
+  </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen p-4 md:p-8 font-sans">
+
+  <!-- Header Banner -->
+  <header class="max-w-7xl mx-auto mb-8 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+      <div>
+        <div class="flex items-center gap-3 mb-2">
+          <span
+            class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-wide uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Live System
+          </span>
+          <span class="text-xs font-semibold text-slate-500">Government of Bangladesh Intelligence</span>
+        </div>
+        <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
+          Weather & Advisory Intelligence Platform
+        </h1>
+        <p class="text-sm text-slate-600 mt-1">
+          Exported Interactive Visual Sitemap & Architectural Route Directory across all 6 Integrated Portals.
+        </p>
+      </div>
+
+      <!-- Quick Metrics Grid & Action Buttons -->
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+          <div class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
+            <div class="text-[10px] font-medium text-slate-500 uppercase">Portals</div>
+            <div class="text-lg font-black text-slate-800">6</div>
+          </div>
+          <div class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
+            <div class="text-[10px] font-medium text-slate-500 uppercase">Routes</div>
+            <div class="text-lg font-black text-blue-600">45+</div>
+          </div>
+          <div class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
+            <div class="text-[10px] font-medium text-slate-500 uppercase">Districts</div>
+            <div class="text-lg font-black text-emerald-600">64</div>
+          </div>
+          <div class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
+            <div class="text-[10px] font-medium text-slate-500 uppercase">Cache</div>
+            <div class="text-lg font-black text-purple-600">&lt;35MB</div>
+          </div>
+        </div>
+
+        <!-- Export & Action Buttons -->
+        <div class="flex items-center gap-2 no-print">
+          <button onclick="downloadHTML()"
+            class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition"
+            title="Download Standalone HTML File">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+            </svg>
+            <span>Export .html</span>
+          </button>
+          <button onclick="window.print()"
+            class="inline-flex items-center justify-center gap-2 px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition border border-slate-200"
+            title="Print or Save as PDF">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z">
+              </path>
+            </svg>
+            <span>Print / PDF</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Controls & Filter Toolbar -->
+    <div
+      class="mt-6 pt-6 border-t border-slate-100 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 no-print">
+      <!-- Search Input -->
+      <div class="relative flex-1 max-w-md">
+        <input id="searchInput" type="text"
+          placeholder="Search route (e.g. forecast, upazila, bmd, alert, warning, ais)..."
+          class="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+          oninput="handleSearch()" />
+        <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-3" fill="none" stroke="currentColor"
+          viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        </svg>
+      </div>
+
+      <!-- View Switcher -->
+      <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl self-start md:self-auto border border-slate-200">
+        <button id="btnTree" onclick="switchView('tree')"
+          class="px-3.5 py-1.5 text-xs font-bold rounded-lg bg-white text-slate-800 shadow-sm transition">
+          🌲 Visual Tree View
+        </button>
+        <button id="btnGrid" onclick="switchView('grid')"
+          class="px-3.5 py-1.5 text-xs font-bold rounded-lg text-slate-600 hover:text-slate-900 transition">
+          🗂️ Cards View
+        </button>
+        <button id="btnPipeline" onclick="switchView('pipeline')"
+          class="px-3.5 py-1.5 text-xs font-bold rounded-lg text-slate-600 hover:text-slate-900 transition">
+          ⚡ Data Pipeline Map
+        </button>
+      </div>
+    </div>
+
+    <!-- Portal Filter Chips -->
+    <div class="flex items-center gap-2 overflow-x-auto pt-4 mt-2 pb-1 text-xs no-print">
+      <span class="text-slate-400 font-semibold uppercase tracking-wider text-[11px] whitespace-nowrap">Filter:</span>
+      <button onclick="filterPortal('all')"
+        class="portal-chip active px-3 py-1 rounded-lg font-bold bg-slate-800 text-white transition"
+        data-portal="all">All Portals (6)</button>
+      <button onclick="filterPortal('nlas')"
+        class="portal-chip px-3 py-1 rounded-lg font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition"
+        data-portal="nlas">NLS Portal</button>
+      <button onclick="filterPortal('bmd')"
+        class="portal-chip px-3 py-1 rounded-lg font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition"
+        data-portal="bmd">BMD USF</button>
+      <button onclick="filterPortal('bamis')"
+        class="portal-chip px-3 py-1 rounded-lg font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition"
+        data-portal="bamis">BAMIS DAE</button>
+      <button onclick="filterPortal('ffwc')"
+        class="portal-chip px-3 py-1 rounded-lg font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition"
+        data-portal="ffwc">FFWC Flood</button>
+      <button onclick="filterPortal('server6')"
+        class="portal-chip px-3 py-1 rounded-lg font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition"
+        data-portal="server6">BMD Live</button>
+      <button onclick="filterPortal('ais')"
+        class="portal-chip px-3 py-1 rounded-lg font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition"
+        data-portal="ais">AIS Portal</button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto space-y-8">
+
+    <!-- VIEW 1: VISUAL TREE VIEW -->
+    <div id="treeView" class="space-y-8">
+      <!-- Root Node -->
+      <div class="flex justify-center">
+        <div
+          class="bg-gradient-to-r from-slate-900 to-slate-800 text-white border border-slate-700 px-6 py-3.5 rounded-2xl shadow-md text-center max-w-sm">
+          <div class="text-xs font-semibold uppercase tracking-wider text-slate-300">Application Entry Root</div>
+          <div class="text-lg font-black tracking-tight mt-0.5">/ (Root Endpoint)</div>
+          <div class="text-xs text-slate-400 mt-1">Automatic 307 Redirect &rarr; <code
+              class="bg-slate-700 text-blue-300 px-1.5 py-0.5 rounded">/forecast</code></div>
+        </div>
+      </div>
+
+      <div class="flex justify-center -my-4">
+        <div class="w-0.5 h-8 bg-slate-300"></div>
+      </div>
+
+      <!-- Portals Sections Grid -->
+      <div id="portalSections" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    </div>
+
+    <!-- VIEW 2: CARDS GRID VIEW -->
+    <div id="gridView" class="hidden">
+      <div id="gridCardsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    </div>
+
+    <!-- VIEW 3: DATA PIPELINE MAP -->
+    <div id="pipelineView" class="hidden space-y-4">
+      <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+        <h3 class="text-lg font-extrabold text-slate-900 mb-1">Government Upstream Data Pipeline & In-Memory SWR Cache
+        </h3>
+        <p class="text-xs text-slate-500 mb-6">
+          High-performance multi-tier pipeline: Client Browser ⇄ Next.js Server Route Handler (In-Memory SWR Cache) ⇄
+          Government REST API.
+        </p>
+        <div id="pipelineContainer" class="space-y-3"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Route Detail Modal Drawer -->
+  <div id="detailModal"
+    class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div
+      class="bg-white border border-slate-200 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative transform transition-all">
+      <button onclick="closeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+      <div id="modalContent"></div>
+    </div>
+  </div>
+
+  <!-- Sitemap Data & Interactive Script -->
+  <script>
+    const SITEMAP_DATA = [
+      {
+        portal: 'nlas',
+        portalName: '1. NLS Portal (NLAS)',
+        portalGov: 'Department of Livestock Services (DLS) • nlas.dls.gov.bd',
+        color: 'blue',
+        routes: [
+          {
+            path: '/forecast',
+            type: 'page',
+            badge: 'Live',
+            badgeClass: 'badge-live',
+            title: 'District All-Upazilas Weather Forecast',
+            component: 'src/app/forecast/page.tsx',
+            clientLib: 'src/lib/district-forecast.ts',
+            upstream: 'common/get_district.php & upazila_forecast_recent',
+            cacheTTL: '15 Min (SWR)',
+            description: 'District all-upazilas view with aggregate KPI banner (temp range, avg humidity, rainy stations count), 5-way sorting, real-time search, cards grid with 5-day mini outlook strip, and comparison table.',
+            features: ['All-upazilas district grid', 'Dual view: Cards & Table', 'Sliding date window in Asia/Dhaka', '5-way sorting']
+          },
+          {
+            path: '/forecast/[upazilaCode]',
+            type: 'dynamic',
+            badge: 'Dynamic Route',
+            badgeClass: 'badge-dynamic',
+            title: 'Single Upazila Deep Inspection & Spline Charts',
+            component: 'src/app/forecast/[upazilaCode]/page.tsx',
+            clientLib: 'src/lib/nlas-client.ts',
+            upstream: 'upazila_forecast_recent & steps_recent (BMDWRF)',
+            cacheTTL: '15 Min (SWR)',
+            description: 'Dedicated deep dive into single upazila weather telemetry. Features Hero observation card, 5–6 day outlook cards, and 3 high-precision interactive SVG spline charts.',
+            features: ['Hero weather card with wind compass', 'Temp & Cloud Cover spline', 'Rain & Humidity chart', 'Wind gust & direction']
+          },
+          {
+            path: '/advisory',
+            type: 'page',
+            badge: 'Live',
+            badgeClass: 'badge-live',
+            title: 'Regional Livestock & Poultry Advisory',
+            component: 'src/app/advisory/page.tsx',
+            clientLib: 'src/lib/regional-advisory.ts',
+            upstream: 'nlas/advisory_region.php',
+            cacheTTL: 'Cache-Busting Real-Time',
+            description: 'Region-wise monthly advisory featuring 7 agro-ecological zones, 12-month dual-axis climatology graph, and bilingual cattle, sheep, goat, and poultry bulletins.',
+            features: ['7 Agro-ecological zones', '12-Month climatology chart', 'Bilingual English/বাংলা', 'One-click copy & print']
+          },
+          {
+            path: '/weather-alert',
+            type: 'page',
+            badge: 'Live',
+            badgeClass: 'badge-live',
+            title: 'National Weather Alerts & Livestock THI Discomfort',
+            component: 'src/app/weather-alert/page.tsx',
+            clientLib: 'src/lib/weather-alert-client.ts',
+            upstream: 'common/get_alert_*.php',
+            cacheTTL: '15 Min (SWR)',
+            description: 'National alert counters and district/upazila warning grids for Rain, Wind, Heat Wave, Cold Wave, and THI Discomfort for Ruminants, Broilers, and Layers.',
+            features: ['5 Meteorological warning types', '3 Livestock THI parameters', 'Color-coded severity badges', 'District drilldown']
+          },
+          {
+            path: '/flood-magnitude',
+            type: 'page',
+            badge: 'Live',
+            badgeClass: 'badge-live',
+            title: 'Flood Magnitude & River Level Safety',
+            component: 'src/app/flood-magnitude/page.tsx',
+            clientLib: 'src/lib/flood-magnitude-client.ts',
+            upstream: 'ffwc/data_load/stations-2025/',
+            cacheTTL: '15 Min (SWR)',
+            description: 'River water level intelligence from FFWC/BWDB across 150+ monitoring stations with Danger Level thresholds and livestock safety bulletins.',
+            features: ['150+ River stations', 'Danger level thresholds', 'Basin aggregation', 'Livestock flood advisories']
+          }
+        ]
+      },
+      {
+        portal: 'bmd',
+        portalName: '2. BMD USF Portal',
+        portalGov: 'Bangladesh Meteorological Department • usf.bmd.gov.bd',
+        color: 'sky',
+        routes: [
+          {
+            path: '/bmd',
+            type: 'page',
+            badge: 'Live',
+            badgeClass: 'badge-live',
+            title: 'BMD District All-Upazilas Weather Telemetry',
+            component: 'src/app/bmd/page.tsx',
+            clientLib: 'src/lib/bmd-district-forecast.ts',
+            upstream: 'https://api.bdservers.site (BMDWRF)',
+            cacheTTL: '15 Min (SWR)',
+            description: 'District all-upazilas weather dashboard. In-card tab switcher between 5–8 Day Apple-Weather style outlook rows and 3-Hourly timeline with horizontal scroll.',
+            features: ['Bilingual English/বাংলা', '5-8 Day diurnal spectrum bars', '3-Hourly timeline scroll track', '5-Way sorting & search']
+          },
+          {
+            path: '/bmd/[upazilaCode]',
+            type: 'dynamic',
+            badge: 'Dynamic Route',
+            badgeClass: 'badge-dynamic',
+            title: 'BMD Single Station Deep Telemetry & Charts',
+            component: 'src/app/bmd/[upazilaCode]/page.tsx',
+            clientLib: 'src/lib/bmd-client.ts',
+            upstream: 'https://api.bdservers.site',
+            cacheTTL: '15 Min (SWR)',
+            description: 'Detailed 8-day daily cards, real-time Heat Index calculation, wind compass with 360° rotation, and 3 SVG spline charts for 24 steps (72 hours).',
+            features: ['Real-time Heat Index', '360° Rotating compass pointer', '8-Day forecast grid', '3 High-precision SVG charts']
+          }
+        ]
+      },
+      {
+        portal: 'bamis',
+        portalName: '3. BAMIS Agromet Portal',
+        portalGov: 'Department of Agricultural Extension (DAE) • bamis.gov.bd',
+        color: 'emerald',
+        routes: [
+          {
+            path: '/bamis',
+            type: 'page',
+            badge: 'Live',
+            badgeClass: 'badge-live',
+            title: 'All 64 Zillas Agromet Overview',
+            component: 'src/app/bamis/page.tsx',
+            clientLib: 'src/lib/bamis-all-districts.ts',
+            upstream: 'bamis.gov.bd/bulletin/',
+            cacheTTL: '20 Min (SWR)',
+            description: 'Full 64-zilla agromet overview. Features National KPI telemetry cards, 8 division filter pills with counts, 5-way sorting, and cards with rain outlook and crop advisories.',
+            features: ['All 64 Districts in one view', '8 Division filter chips', 'Rain outlook badges', 'Direct drilldown to bulletins']
+          },
+          {
+            path: '/bamis/[districtId]',
+            type: 'dynamic',
+            badge: 'Dynamic Route',
+            badgeClass: 'badge-dynamic',
+            title: 'Single District Agromet Bulletin',
+            component: 'src/app/bamis/[districtId]/page.tsx',
+            clientLib: 'src/lib/bamis-client.ts',
+            upstream: 'bamis.gov.bd/bulletin/district/{id}/',
+            cacheTTL: '15 Min (SWR)',
+            description: 'Deep agricultural bulletin per district. 4 KPI cards, sub-tabs for Past 4 Days Observed and Next 5 Days Forecast tables, and 8 crop-specific advisory cards.',
+            features: ['Past 4D observed weather', 'Next 5D quantitative forecast', '8 Crop advisory directive cards', 'Print view support']
+          },
+          {
+            path: '/bamis/national',
+            type: 'page',
+            badge: 'Live',
+            badgeClass: 'badge-live',
+            title: 'National Agromet Bulletin (Executive)',
+            component: 'src/app/bamis/national/page.tsx',
+            clientLib: 'src/lib/bamis-national-client.ts',
+            upstream: 'bamis.gov.bd/bulletin/nation/current/',
+            cacheTTL: '15 Min (SWR)',
+            description: 'Official national dekad bulletin from DAE. 5-day quantitative forecast for 8 parameters across all 64 districts, and 10 agricultural sector advisories.',
+            features: ['Dekad validity period', '8 Quantitative parameters', '64-District comparison table', '10 Sector advisories with stage badges']
+          }
+        ]
+      },
+      {
+        portal: 'ffwc',
+        portalName: '4. FFWC Flood Intelligence',
+        portalGov: 'Flood Forecasting & Warning Centre (BWDB) • ffwc.gov.bd',
+        color: 'teal',
+        routes: [
+          {
+            path: '/ffwc',
+            type: 'page',
+            badge: 'Live',
+            badgeClass: 'badge-live',
+            title: 'Flood Alert & Magnitude',
+            component: 'src/app/ffwc/page.tsx',
+            clientLib: 'src/lib/ffwc-client.ts',
+            upstream: 'ffwc.gov.bd/app/home API endpoints',
+            cacheTTL: '15 Min (SWR)',
+            description: 'Real-time flood status across 153 hydrological stations in 4 major river basins. Status badges (Normal, Warning, Flood, Severe Flood) and rising/falling trends.',
+            features: ['153 Hydrological stations', '4 River basins', 'Status severity pills', 'Station-to-district mapping']
+          },
+          {
+            path: '/ffwc/hydrograph',
+            type: 'page',
+            badge: 'Live',
+            badgeClass: 'badge-live',
+            title: 'Hydrograph & River Stages',
+            component: 'src/app/ffwc/hydrograph/page.tsx',
+            clientLib: 'src/lib/ffwc-client.ts',
+            upstream: 'ffwc.gov.bd hydrograph data',
+            cacheTTL: '15 Min (SWR)',
+            description: 'Station and river search, river filter, district filter, and forecast model selector (Short Range, Medium Range, Monsoon).',
+            features: ['River & district filtering', 'Forecast model selection', 'Station search']
+          },
+          {
+            path: '/ffwc/observed-water-level',
+            type: 'page',
+            badge: 'Live',
+            badgeClass: 'badge-live',
+            title: 'Observed River Water Level & 40-Day History',
+            component: 'src/app/ffwc/observed-water-level/page.tsx',
+            clientLib: 'src/lib/ffwc-client.ts',
+            upstream: 'ffwc.gov.bd observed water levels',
+            cacheTTL: '15 Min (SWR)',
+            description: 'Danger level comparison vs current water level. Interactive modal popup displaying 40-day historical water level trends.',
+            features: ['Danger level comparison', '40-Day historical modal chart', 'Station search']
+          },
+          {
+            path: '/ffwc/forecast-maps',
+            type: 'page',
+            badge: 'Live',
+            badgeClass: 'badge-live',
+            title: 'Forecast Trends & Hydrological Maps',
+            component: 'src/app/ffwc/forecast-maps/page.tsx',
+            clientLib: 'src/lib/ffwc-client.ts',
+            upstream: 'ffwc.gov.bd map & forecast services',
+            cacheTTL: '15 Min (SWR)',
+            description: '10-day medium range flood forecast, Rainfall Map, Rainfall Distribution Map, and Inundation Flood Map intelligence.',
+            features: ['10-Day flood forecast', 'Rainfall distribution maps', 'Inundation analytics']
+          }
+        ]
+      },
+      {
+        portal: 'server6',
+        portalName: '5. BMD Live Portal',
+        portalGov: 'Storm Warning Centre (SWC) • server6.bmd.gov.bd',
+        color: 'purple',
+        routes: [
+          {
+            path: '/bmd-live/warnings',
+            type: 'page',
+            badge: 'Live',
+            badgeClass: 'badge-live',
+            title: 'Severe Weather Warnings (SWC)',
+            component: 'src/app/bmd-live/warnings/page.tsx',
+            clientLib: 'src/lib/bmd-live-warnings-client.ts',
+            upstream: 'server6.bmd.gov.bd warning endpoints',
+            cacheTTL: '15 Min (SWR)',
+            description: '8 official warning categories from Storm Warning Centre: Marine, Inland Riverport, Heavy Rain, Lightning, Kalbaishakhi, Heat Wave, Fog, and Special Bulletins.',
+            features: ['8 Warning categories', 'Color-coded severity (Critical/High/Med)', 'Validity period & affected zones', 'Bilingual directives']
+          },
+          {
+            path: '/bmd-live/outlook',
+            type: 'page',
+            badge: 'Live',
+            badgeClass: 'badge-live',
+            title: 'Three-Month Seasonal Outlook',
+            component: 'src/app/bmd-live/outlook/page.tsx',
+            clientLib: 'src/lib/bmd-live-outlook-client.ts',
+            upstream: 'server6.bmd.gov.bd/en/p/Three-Month-Outlook',
+            cacheTTL: '15 Min (SWR)',
+            description: 'Comprehensive 3-month seasonal forecast. Division-wise precipitation and temperature anomaly predictions with agricultural advisories.',
+            features: ['3-Month seasonal forecast', 'Division anomaly classifications', 'Agromet implications']
+          }
+        ]
+      },
+      {
+        portal: 'ais',
+        portalName: '6. AIS Agriculture Portal',
+        portalGov: 'Agriculture Information Service • ais.gov.bd',
+        color: 'green',
+        routes: [
+          {
+            path: '/ais',
+            type: 'page',
+            badge: 'Live',
+            badgeClass: 'badge-live',
+            title: 'Monthly Agriculture Advisory (এ মাসের কৃষি)',
+            component: 'src/app/ais/page.tsx',
+            clientLib: 'src/lib/ais-client.ts',
+            upstream: 'ais.gov.bd/pages/static-pages/6922dedd933eb65569e1df05',
+            cacheTTL: '15 Min (SWR)',
+            description: 'Current month agricultural directives across 7 crop sectors. Stage badges, numbered actions, and copy.',
+            features: ['7 Crop sectors', 'Phenological stage badges', 'Executive editorial card', 'One-click copy']
+          },
+          {
+            path: '/ais/special-advisory',
+            type: 'page',
+            badge: 'Live',
+            badgeClass: 'badge-live',
+            title: 'Special Advisories & Agricultural Files',
+            component: 'src/app/ais/special-advisory/page.tsx',
+            clientLib: 'src/lib/ais-client.ts',
+            upstream: 'ais.gov.bd/pages/files/6922dadf933eb65569e0709a',
+            cacheTTL: '15 Min (SWR)',
+            description: '7 downloadable & readable agricultural publications. Category filter pills, Cards Grid vs Table views, and in-app document reader modal.',
+            features: ['7 Publications', 'Category filter pills', 'In-app document viewer', 'PDF/doc download links']
+          },
+          {
+            path: '/ais/crop-technology',
+            type: 'page',
+            badge: 'Live',
+            badgeClass: 'badge-live',
+            title: 'Crop Production Technology & Boro Seedbed',
+            component: 'src/app/ais/crop-technology/page.tsx',
+            clientLib: 'src/lib/ais-client.ts',
+            upstream: 'ais.gov.bd/pages/static-pages/6922dfdd933eb65569e2464d',
+            cacheTTL: '15 Min (SWR)',
+            description: 'Complete 5-step Boro seedbed preparation technology guide, seed treatment protocols, cold injury prevention, and variety matrix table.',
+            features: ['5-Step seedbed preparation guide', 'Cold protection protocols', 'Variety matrix table', 'Planting schedules']
+          }
+        ]
+      }
+    ];
+
+    let currentPortal = 'all';
+    let searchQuery = '';
+    let currentView = 'tree';
+
+    function render() {
+      renderTreeView();
+      renderGridView();
+      renderPipelineView();
+    }
+
+    function renderTreeView() {
+      const container = document.getElementById('portalSections');
+      container.innerHTML = '';
+
+      const filteredPortals = SITEMAP_DATA.filter(p => {
+        if (currentPortal !== 'all' && p.portal !== currentPortal) return false;
+        if (searchQuery) {
+          const matchPortal = p.portalName.toLowerCase().includes(searchQuery);
+          const matchRoutes = p.routes.some(r =>
+            r.path.toLowerCase().includes(searchQuery) ||
+            r.title.toLowerCase().includes(searchQuery) ||
+            r.description.toLowerCase().includes(searchQuery)
+          );
+          return matchPortal || matchRoutes;
+        }
+        return true;
+      });
+
+      filteredPortals.forEach(portal => {
+        const portalCard = document.createElement('div');
+        portalCard.className = 'bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4';
+
+        let headerColorClass = 'text-blue-600';
+        let bgAccent = 'bg-blue-50 border-blue-200';
+        if (portal.color === 'sky') { headerColorClass = 'text-sky-600'; bgAccent = 'bg-sky-50 border-sky-200'; }
+        if (portal.color === 'emerald') { headerColorClass = 'text-emerald-600'; bgAccent = 'bg-emerald-50 border-emerald-200'; }
+        if (portal.color === 'teal') { headerColorClass = 'text-teal-600'; bgAccent = 'bg-teal-50 border-teal-200'; }
+        if (portal.color === 'purple') { headerColorClass = 'text-purple-600'; bgAccent = 'bg-purple-50 border-purple-200'; }
+        if (portal.color === 'green') { headerColorClass = 'text-green-600'; bgAccent = 'bg-green-50 border-green-200'; }
+
+        portalCard.innerHTML = `
+          <div class="border-b border-slate-100 pb-3">
+            <div class="flex items-center justify-between">
+              <h3 class="font-black text-base ${headerColorClass}">${portal.portalName}</h3>
+              <span class="text-[11px] font-bold px-2 py-0.5 rounded-full ${bgAccent} text-slate-700">${portal.routes.length} routes</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">${portal.portalGov}</p>
+          </div>
+          <div class="space-y-2.5">
+            ${portal.routes.map((route, idx) => `
+              <div 
+                onclick="openModal('${portal.portal}', ${idx})"
+                class="node-card p-3 rounded-xl border border-slate-200 hover:border-slate-400 bg-slate-50/50 hover:bg-white cursor-pointer"
+              >
+                <div class="flex items-start justify-between gap-2">
+                  <code class="text-xs font-bold text-slate-900 break-all">${route.path}</code>
+                  <span class="text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${route.badgeClass}">${route.badge}</span>
+                </div>
+                <div class="text-xs font-semibold text-slate-700 mt-1">${route.title}</div>
+                <div class="text-[11px] text-slate-500 line-clamp-2 mt-0.5">${route.description}</div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+        container.appendChild(portalCard);
+      });
+
+      if (filteredPortals.length === 0) {
+        container.innerHTML = `<div class="col-span-3 text-center py-12 text-slate-400">No routes found matching "${searchQuery}".</div>`;
+      }
+    }
+
+    function renderGridView() {
+      const container = document.getElementById('gridCardsContainer');
+      container.innerHTML = '';
+
+      SITEMAP_DATA.forEach(portal => {
+        if (currentPortal !== 'all' && portal.portal !== currentPortal) return;
+
+        portal.routes.forEach((route, idx) => {
+          if (searchQuery) {
+            const match = route.path.toLowerCase().includes(searchQuery) ||
+              route.title.toLowerCase().includes(searchQuery) ||
+              route.description.toLowerCase().includes(searchQuery);
+            if (!match) return;
+          }
+
+          const card = document.createElement('div');
+          card.className = 'node-card bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3 cursor-pointer flex flex-col justify-between';
+          card.onclick = () => openModal(portal.portal, idx);
+
+          card.innerHTML = `
+            <div>
+              <div class="flex items-center justify-between gap-2 mb-2">
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">${portal.portalName}</span>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${route.badgeClass}">${route.badge}</span>
+              </div>
+              <code class="text-sm font-bold text-slate-900 block mb-1">${route.path}</code>
+              <div class="text-xs font-bold text-slate-800 mb-1">${route.title}</div>
+              <p class="text-xs text-slate-500 line-clamp-3">${route.description}</p>
+            </div>
+            <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+              <span>TTL: <strong class="text-slate-600">${route.cacheTTL}</strong></span>
+              <span class="text-blue-600 font-semibold flex items-center gap-1">Details &rarr;</span>
+            </div>
+          `;
+          container.appendChild(card);
+        });
+      });
+    }
+
+    function renderPipelineView() {
+      const container = document.getElementById('pipelineContainer');
+      container.innerHTML = '';
+
+      SITEMAP_DATA.forEach(portal => {
+        portal.routes.forEach(route => {
+          if (route.type === 'redirect') return;
+          if (currentPortal !== 'all' && portal.portal !== currentPortal) return;
+          if (searchQuery && !route.path.toLowerCase().includes(searchQuery) && !route.title.toLowerCase().includes(searchQuery)) return;
+
+          const row = document.createElement('div');
+          row.className = 'p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs';
+          row.innerHTML = `
+            <div class="flex items-center gap-3 min-w-[280px]">
+              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <div>
+                <code class="font-bold text-slate-900">${route.path}</code>
+                <div class="text-[11px] text-slate-500">${route.title}</div>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2 text-slate-400">
+              <span>&rarr;</span>
+              <span class="bg-white border border-slate-200 px-2.5 py-1 rounded-md text-[11px] font-mono text-slate-700">
+                ${route.clientLib || 'Client Service'}
+              </span>
+              <span>&rarr;</span>
+            </div>
+
+            <div class="flex items-center justify-between lg:justify-end gap-4 min-w-[260px]">
+              <span class="bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded text-[11px] font-semibold">
+                ${route.upstream}
+              </span>
+              <span class="text-slate-500 font-mono text-[11px] whitespace-nowrap">
+                ${route.cacheTTL}
+              </span>
+            </div>
+          `;
+          container.appendChild(row);
+        });
+      });
+    }
+
+    function openModal(portalKey, routeIdx) {
+      const portal = SITEMAP_DATA.find(p => p.portal === portalKey);
+      if (!portal) return;
+      const route = portal.routes[routeIdx];
+      if (!route) return;
+
+      const modalContent = document.getElementById('modalContent');
+      modalContent.innerHTML = `
+        <div class="space-y-4">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-500">${portal.portalName}</span>
+            <span class="text-[11px] font-bold px-2 py-0.5 rounded-full ${route.badgeClass}">${route.badge}</span>
+          </div>
+
+          <div>
+            <h2 class="text-lg font-black text-slate-900">${route.title}</h2>
+            <code class="text-xs font-mono bg-slate-100 text-blue-700 px-2 py-0.5 rounded mt-1 inline-block">${route.path}</code>
+          </div>
+
+          <p class="text-xs text-slate-600 leading-relaxed">${route.description}</p>
+
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2 text-xs">
+            <div class="flex justify-between">
+              <span class="text-slate-500">Component File:</span>
+              <code class="font-mono text-slate-800">${route.component}</code>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-500">Client Library:</span>
+              <code class="font-mono text-slate-800">${route.clientLib}</code>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-500">Upstream Endpoint:</span>
+              <span class="font-semibold text-slate-800">${route.upstream}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-500">Cache Strategy:</span>
+              <span class="font-bold text-emerald-700">${route.cacheTTL}</span>
+            </div>
+          </div>
+
+          ${route.features && route.features.length > 0 ? `
+            <div>
+              <div class="text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Key Capabilities</div>
+              <ul class="grid grid-cols-2 gap-1 text-xs text-slate-600">
+                ${route.features.map(f => `<li class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>${f}</li>`).join('')}
+              </ul>
+            </div>
+          ` : ''}
+
+          <div class="pt-2 flex justify-end gap-2">
+            <a href="${route.path.replace('[upazilaCode]', '302602').replace('[districtId]', '37')}" target="_blank" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition">
+              Open Route in App &rarr;
+            </a>
+            <button onclick="closeModal()" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-200 transition">
+              Close
+            </button>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('detailModal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('detailModal').classList.add('hidden');
+    }
+
+    function switchView(view) {
+      currentView = view;
+      ['tree', 'grid', 'pipeline'].forEach(v => {
+        document.getElementById(v + 'View').classList.add('hidden');
+        document.getElementById('btn' + v.charAt(0).toUpperCase() + v.slice(1)).classList.remove('bg-white', 'text-slate-800', 'shadow-sm');
+        document.getElementById('btn' + v.charAt(0).toUpperCase() + v.slice(1)).classList.add('text-slate-600');
+      });
+
+      document.getElementById(view + 'View').classList.remove('hidden');
+      const activeBtn = document.getElementById('btn' + view.charAt(0).toUpperCase() + view.slice(1));
+      activeBtn.classList.add('bg-white', 'text-slate-800', 'shadow-sm');
+      activeBtn.classList.remove('text-slate-600');
+    }
+
+    function filterPortal(portal) {
+      currentPortal = portal;
+      document.querySelectorAll('.portal-chip').forEach(chip => {
+        if (chip.getAttribute('data-portal') === portal) {
+          chip.className = 'portal-chip active px-3 py-1 rounded-lg font-bold bg-slate-800 text-white transition';
+        } else {
+          chip.className = 'portal-chip px-3 py-1 rounded-lg font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition';
+        }
+      });
+      render();
+    }
+
+    function handleSearch() {
+      searchQuery = document.getElementById('searchInput').value.trim().toLowerCase();
+      render();
+    }
+
+    function downloadHTML() {
+      const htmlContent = document.documentElement.outerHTML;
+      const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'NLAS-Platform-Visual-Sitemap.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    render();
+  </script>
+</body>
+
+</html>
