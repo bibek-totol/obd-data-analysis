@@ -199,20 +199,89 @@ export default function Sidebar({
     setExpandedSites(prev => ({ ...prev, [siteId]: !prev[siteId] }));
   };
 
+  // Helper to render authentic portal branding badge
+  const renderSiteBadge = (site: WebsiteItem, isCurrentSite: boolean) => {
+    let topText = 'NLS';
+    let subText = 'BD';
+    let gradient = 'linear-gradient(135deg, #006a4e 0%, #004d37 100%)';
+    let shadowColor = 'rgba(0, 106, 78, 0.25)';
+
+    if (site.id === 'bmd-live') {
+      topText = 'BMD';
+      subText = 'LIVE';
+      gradient = 'linear-gradient(135deg, #1d6e99 0%, #2586b6 100%)';
+      shadowColor = 'rgba(29, 110, 153, 0.25)';
+    } else if (site.id === 'bamis') {
+      topText = 'BAMIS';
+      subText = 'BD';
+      gradient = 'linear-gradient(135deg, #054c27 0%, #0c713e 100%)';
+      shadowColor = 'rgba(12, 113, 62, 0.25)';
+    } else if (site.id === 'bmd') {
+      topText = 'BMD';
+      subText = 'BD';
+      gradient = 'linear-gradient(135deg, #0a336f 0%, #0369a1 100%)';
+      shadowColor = 'rgba(3, 105, 161, 0.25)';
+    }
+
+    const topFontSize = site.id === 'bamis' ? '9px' : '10px';
+    const topLetterSpacing = site.id === 'bamis' ? '-0.02em' : '0.02em';
+
+    return (
+      <div
+        style={{
+          width: '34px',
+          height: '34px',
+          borderRadius: '8px',
+          background: gradient,
+          color: '#ffffff',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+          boxShadow: isCurrentSite ? `0 2px 6px ${shadowColor}` : 'none',
+          lineHeight: 1,
+          padding: '2px 0'
+        }}
+      >
+        <span style={{ fontSize: topFontSize, fontWeight: 800, letterSpacing: topLetterSpacing }}>
+          {topText}
+        </span>
+        <span style={{
+          fontSize: '7px',
+          fontWeight: 700,
+          color: site.id.startsWith('bmd') ? '#e0f2fe' : '#bbf7d0',
+          letterSpacing: '0.04em',
+          marginTop: '1.5px'
+        }}>
+          {subText}
+        </span>
+      </div>
+    );
+  };
+
   // Helper to render navigation items list
   const renderWebsiteItems = (isDrawer = false) => {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {websites.map(site => {
           const isExpanded = isDrawer ? true : !!expandedSites[site.id];
+          const isCurrentSite = site.subsections.some(sub => sub.id === effectiveActiveSection);
+          const isBmdTheme = site.id.startsWith('bmd');
+
           return (
             <div
               key={site.id}
               style={{
-                backgroundColor: site.active ? '#f8fafc' : '#ffffff',
-                border: site.active ? '1px solid #c7d2fe' : '1px solid #e2e8f0',
+                backgroundColor: '#ffffff',
+                border: isCurrentSite
+                  ? (isBmdTheme ? '1px solid #bae6fd' : '1px solid #bbf7d0')
+                  : '1px solid #e2e8f0',
                 borderRadius: '12px',
                 overflow: 'hidden',
+                boxShadow: isCurrentSite
+                  ? (isBmdTheme ? '0 2px 8px rgba(3, 105, 161, 0.08)' : '0 2px 8px rgba(0, 106, 78, 0.08)')
+                  : 'none',
                 transition: 'all 0.2s ease'
               }}
             >
@@ -226,32 +295,23 @@ export default function Sidebar({
                   alignItems: 'center',
                   justifyContent: (!isDrawer && isCollapsed) ? 'center' : 'space-between',
                   cursor: (!isDrawer && isCollapsed) ? 'default' : 'pointer',
-                  backgroundColor: site.active ? '#f0fdf4' : '#ffffff',
-                  borderBottom: (isDrawer || !isCollapsed) && isExpanded ? '1px solid #e2e8f0' : 'none'
+                  backgroundColor: isCurrentSite
+                    ? (isBmdTheme ? '#f0f9ff' : '#f0fdf4')
+                    : '#ffffff',
+                  borderBottom: (isDrawer || !isCollapsed) && isExpanded
+                    ? (isCurrentSite ? (isBmdTheme ? '1px solid #e0f2fe' : '1px solid #dcfce7') : '1px solid #f1f5f9')
+                    : 'none',
+                  transition: 'background-color 0.15s ease'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '8px',
-                    backgroundColor: site.active ? site.themeColor : '#64748b',
-                    color: '#ffffff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 700,
-                    fontSize: '11px',
-                    flexShrink: 0
-                  }}>
-                    {site.id.toUpperCase()}
-                  </div>
+                  {renderSiteBadge(site, isCurrentSite)}
                   {(isDrawer || !isCollapsed) && (
                     <div>
                       <div style={{
                         fontSize: '13px',
                         fontWeight: 700,
-                        color: '#0f172a',
+                        color: isCurrentSite ? (isBmdTheme ? '#0369a1' : '#0c713e') : '#0f172a',
                         lineHeight: 1.2
                       }}>
                         {site.name}
@@ -268,7 +328,7 @@ export default function Sidebar({
                 </div>
 
                 {(isDrawer || !isCollapsed) && (
-                  <div style={{ color: '#94a3b8' }}>
+                  <div style={{ color: isCurrentSite ? (isBmdTheme ? '#0284c7' : '#15803d') : '#94a3b8' }}>
                     {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                   </div>
                 )}
@@ -280,6 +340,7 @@ export default function Sidebar({
                   {site.subsections.map(sub => {
                     const isSelected = effectiveActiveSection === sub.id;
                     const Icon = sub.icon;
+                    const isAlert = sub.badge === 'Alert' || sub.id === 'bmd-live-warnings';
 
                     return (
                       <Link
@@ -300,9 +361,13 @@ export default function Sidebar({
                           padding: '9px 12px',
                           borderRadius: '8px',
                           backgroundColor: isSelected ? '#ffffff' : 'transparent',
-                          border: isSelected ? '1px solid #86efac' : '1px solid transparent',
+                          border: isSelected
+                            ? (isAlert ? '1px solid #fca5a5' : isBmdTheme ? '1px solid #7dd3fc' : '1px solid #86efac')
+                            : '1px solid transparent',
                           boxShadow: isSelected ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
-                          color: isSelected ? '#006a4e' : '#475569',
+                          color: isSelected
+                            ? (isAlert ? '#dc2626' : isBmdTheme ? '#0284c7' : '#006a4e')
+                            : '#475569',
                           fontWeight: isSelected ? 700 : 500,
                           fontSize: '12.5px',
                           textDecoration: 'none',
@@ -310,7 +375,7 @@ export default function Sidebar({
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <Icon size={16} className={isSelected ? 'text-primary' : ''} />
+                          <Icon size={16} />
                           <span>{sub.label}</span>
                         </div>
                         {sub.badge && (
@@ -319,8 +384,12 @@ export default function Sidebar({
                             fontWeight: 700,
                             padding: '2px 7px',
                             borderRadius: '10px',
-                            backgroundColor: isSelected ? '#dcfce7' : '#f1f5f9',
-                            color: isSelected ? '#15803d' : '#64748b'
+                            backgroundColor: isSelected
+                              ? (isAlert ? '#fee2e2' : isBmdTheme ? '#e0f2fe' : '#dcfce7')
+                              : (isAlert ? '#fee2e2' : '#f1f5f9'),
+                            color: isSelected
+                              ? (isAlert ? '#b91c1c' : isBmdTheme ? '#0284c7' : '#15803d')
+                              : (isAlert ? '#b91c1c' : '#64748b')
                           }}>
                             {sub.badge}
                           </span>
