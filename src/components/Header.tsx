@@ -29,9 +29,10 @@ export default function Header({
   const isBamisNational = activeSection === 'bamis-national';
   const isBamis = isBamisBulletin || isBamisNational;
   const isFfwc = activeSection === 'ffwc-alert' || activeSection === 'ffwc-hydrograph' || activeSection === 'ffwc-observed' || activeSection === 'ffwc-forecast-maps';
+  const isAis = activeSection === 'ais-monthly' || activeSection === 'ais-special' || activeSection === 'ais-technology';
 
-  const themeColor = isBmdLiveWarnings ? '#dc2626' : isBmdLiveOutlook ? '#0284c7' : isBmdLive ? '#1d76a2' : isBmd ? '#0369a1' : isFfwc ? '#0891b2' : isBamis ? '#0c713e' : '#006a4e';
-  const themeHoverColor = isBmdLiveWarnings ? '#b91c1c' : isBmdLiveOutlook ? '#0369a1' : isBmdLive ? '#165c7f' : isBmd ? '#075985' : isFfwc ? '#0e7490' : isBamis ? '#084f2b' : '#00523d';
+  const themeColor = isBmdLiveWarnings ? '#dc2626' : isBmdLiveOutlook ? '#0284c7' : isBmdLive ? '#1d76a2' : isBmd ? '#0369a1' : isFfwc ? '#0891b2' : isAis ? '#15803d' : isBamis ? '#0c713e' : '#006a4e';
+  const themeHoverColor = isBmdLiveWarnings ? '#b91c1c' : isBmdLiveOutlook ? '#0369a1' : isBmdLive ? '#165c7f' : isBmd ? '#075985' : isFfwc ? '#0e7490' : isAis ? '#166534' : isBamis ? '#084f2b' : '#00523d';
 
   return (
     <header style={{
@@ -74,7 +75,21 @@ export default function Header({
 
         {/* Portal Branding Badge */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-          {isFfwc ? (
+          {isAis ? (
+            <div style={{
+              background: 'linear-gradient(135deg, #15803d 0%, #16a34a 100%)',
+              color: '#ffffff',
+              padding: '4px 10px',
+              borderRadius: '6px',
+              fontWeight: 800,
+              fontSize: '14px',
+              letterSpacing: '0.04em',
+              boxShadow: '0 2px 6px rgba(22, 163, 74, 0.25)',
+              flexShrink: 0
+            }}>
+              AIS <span style={{ fontSize: '9px', fontWeight: 500, color: '#bbf7d0' }}>BD</span>
+            </div>
+          ) : isFfwc ? (
             <div style={{
               background: 'linear-gradient(135deg, #0e7490 0%, #0891b2 100%)',
               color: '#ffffff',
@@ -157,7 +172,9 @@ export default function Header({
               overflow: 'hidden',
               textOverflow: 'ellipsis'
             }}>
-              {isFfwc
+              {isAis
+                ? 'Agriculture Information Service (AIS Portal)'
+                : isFfwc
                 ? 'Flood Forecasting & Warning Centre (FFWC)'
                 : isBmdLiveOutlook
                 ? 'Three-Month Long Range Climate Outlook (server6.bmd.gov.bd)'
@@ -181,7 +198,9 @@ export default function Header({
               overflow: 'hidden',
               textOverflow: 'ellipsis'
             }}>
-              {isFfwc
+              {isAis
+                ? 'Department of Agriculture • Ministry of Agriculture • ais.gov.bd'
+                : isFfwc
                 ? 'Bangladesh Water Development Board (BWDB) • ffwc.gov.bd'
                 : isBmdLiveOutlook
                 ? 'Expert Committee Long-Range Seasonal Climate Outlook • server6.bmd.gov.bd • BMD Dhaka'
@@ -206,7 +225,9 @@ export default function Header({
           onClick={onReload}
           disabled={isLoading}
           id={
-            isFfwc
+            isAis
+              ? 'btn-reload-latest-ais'
+              : isFfwc
               ? 'btn-reload-latest-ffwc'
               : isBmdLiveOutlook
               ? 'btn-reload-latest-bmd-live-outlook'
@@ -229,7 +250,9 @@ export default function Header({
               : 'btn-reload-latest-advisory'
           }
           title={
-            isFfwc
+            isAis
+              ? 'Click to fetch fresh agricultural directives & bulletins from ais.gov.bd'
+              : isFfwc
               ? 'Click to fetch fresh real-time hydrological & flood data from ffwc.gov.bd'
               : isBmdLiveOutlook
               ? 'Click to fetch fresh three-month seasonal climate outlook from server6.bmd.gov.bd'
@@ -283,6 +306,8 @@ export default function Header({
           <span className="hide-on-mobile">
             {isLoading
               ? 'Fetching...'
+              : isAis
+              ? 'Reload AIS Data'
               : isFfwc
               ? 'Reload FFWC Feed'
               : isBmdLiveOutlook

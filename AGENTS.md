@@ -113,6 +113,14 @@ Data is harvested directly from the NLAS backend services (`https://nlas.dls.gov
 - **`src/app/ffwc/hydrograph/page.tsx`**: Dedicated page route for FFWC Hydrograph & River Stages (`/ffwc/hydrograph`).
 - **`src/app/ffwc/observed-water-level/page.tsx`**: Dedicated page route for FFWC Observed Water Level (`/ffwc/observed-water-level`).
 - **`src/app/ffwc/forecast-maps/page.tsx`**: Dedicated page route for FFWC Forecast & Map Layers (`/ffwc/forecast-maps`).
+- **`src/lib/ais-client.ts`**: Dedicated AIS client library with TypeScript interfaces, base64 content decoder, file parser, and 15-minute SWR caching.
+- **`src/lib/ais-fallback.json`**: Authentic fallback dataset covering monthly agricultural directives, 7 special advisory publications, and Boro seedbed technology.
+- **`src/app/api/ais/route.ts`**: API endpoint for AIS data aggregation (`/api/ais?reload=true&type=all|monthly|special|technology`).
+- **`src/components/AisSection.tsx`**: Complete AIS intelligence container featuring Monthly Agriculture Advisory, Special Advisories & Files with in-app document viewer, and Crop Production Technology.
+- **`src/app/ais/page.tsx`**: Dedicated page route for AIS Monthly Agriculture Advisory (`/ais`).
+- **`src/app/ais/monthly-advisory/page.tsx`**: Dedicated page route for AIS Monthly Advisory (`/ais/monthly-advisory`).
+- **`src/app/ais/special-advisory/page.tsx`**: Dedicated page route for AIS Special Advisories & Files (`/ais/special-advisory`).
+- **`src/app/ais/crop-technology/page.tsx`**: Dedicated page route for AIS Crop Production Technology (`/ais/crop-technology`).
 - **`src/app/globals.css`**: Design tokens, typography (Inter & Hind Siliguri), smooth animations, and scrollbars.
 
 ---
@@ -277,3 +285,30 @@ Data is harvested directly from the NLAS backend services (`https://nlas.dls.gov
           - Official FFWC bulletin summary & synoptic river basin outlook.
      - **On-Demand Dynamic Synchronization**:
        - Next.js route handler `/api/ffwc` proxying upstream endpoints with 15-minute SWR caching, instant reload via `?reload=true`, and full fallback dataset (`src/lib/ffwc-fallback.json`).
+
+6. **AIS Portal (কৃষি তথ্য সার্ভিস - এআইএস)** (`https://ais.gov.bd/`):
+   - **Agriculture Information Service (Ministry of Agriculture)**:
+     - Official agromet directives, publications, and production technology directly harvested from `https://ais.gov.bd/`.
+     - **Three Sub-sections**:
+       1. **Monthly Agriculture Advisory (`/ais`, `/ais/monthly-advisory`)**:
+          - Direct upstream source: `https://ais.gov.bd/pages/static-pages/6922dedd933eb65569e1df05` (এ মাসের কৃষি / জ্যৈষ্ঠ মাসের কৃষি).
+          - Editorial metadata: Published by Ferdousi Begum, Editor, AIS, Khamarbari, Farmgate, Dhaka (Phone: 02-55028404, Email: editor@ais.gov.bd, Krishi Call Center: 16123).
+          - Sector-wise actionable directives: Boro Rice (বোরো ধান), Aus Rice (আউশ ধান), Transplanted Aman (রোপা আমন), Jute (পাট), Summer Vegetables (গ্রীষ্মকালীন শাকসবজি), Fruit Orchards (উদ্যান ফসল ও ফলমূল), Miscellaneous (আদা, হলুদ, মুগডাল, কচু, ধইঞ্চা), Livestock & Poultry (প্রাণিসম্পদ ও পোল্ট্রি), and Fisheries (মৎস্য সম্পদ).
+          - Interactive category filtering, search, stage badges, and one-click copy.
+       2. **Special Advisories & Technical Files (`/ais/special-advisory`, `/ais/files`)**:
+          - Direct upstream source: `https://ais.gov.bd/pages/files/6922dadf933eb65569e0709a` (বিশেষ পরামর্শ | ফাইল সমূহ).
+          - 7 official technical publications:
+            1. Balanced fertilizer application guide (সুষম সার ব্যবহারের পরামর্শ - PDF)
+            2. Protecting Rabi crops during severe cold waves (তীব্র শীতে রবি ফসল রক্ষায় করণীয় - JPG)
+            3. Rice damaging disease management (ধানের ক্ষতিকারক রোগ ব্যবস্থাপনা - PDF)
+            4. Post-flood agricultural rehabilitation (বন্যা ও বন্যা পরবর্তীতে চাষি ভাইদের করণীয় - PDF)
+            5. Brown planthopper control in paddy (ধানে বাদামি গাছ ফড়িং দমনে করণীয় - PDF)
+            6. Late blight of potato control (আলুর মড়ক রোগ দমনে করণীয় - PDF)
+            7. Post-cold wave Boro rice care (ঠান্ডা পরবর্তী সময়ে বোরো ধান পরিচর্যায় কৃষক ভাইদের করণীয় - PDF)
+          - Dual layouts (Cards Grid vs Comparison Table), category filter chips, search, direct Oracle Cloud download links, and **In-App Document Reader Modal** (PDF/JPG preview).
+       3. **Crop Production Technology (`/ais/crop-technology`, `/ais/seedbed`)**:
+          - Direct upstream source: `https://ais.gov.bd/pages/static-pages/6922dfdd933eb65569e2464d` (বোরো ধানের বীজতলা তৈরি | পাতা).
+          - 5-step technical guide: Land selection & organic manure, drainage channels, ecology-matched variety selection matrix (Drought, Favorable, Northern Cold, Haor Lowlands, Coastal Saline), seed treatment & 60-70h sprouting, and cold wave / fog protection.
+          - Additional technology guides: Rice harvesting, threshing & storage (`6922df64933eb65569e21aed`) and detecting adulterated fertilizers (`6922dddc933eb65569e16bc4`).
+     - **On-Demand Dynamic Synchronization**:
+       - Next.js route handler `/api/ais` proxying upstream endpoints with 15-minute SWR caching, instant reload via `?reload=true`, and full authentic fallback dataset (`src/lib/ais-fallback.json`).

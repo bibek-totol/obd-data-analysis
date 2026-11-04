@@ -21,11 +21,12 @@ import {
   Activity,
   Droplets,
   Map,
+  Calendar,
   X
 } from 'lucide-react';
 import { useDashboard } from '@/context/DashboardContext';
 
-export type ActiveSection = 'forecast' | 'advisory' | 'weather-alert' | 'flood-magnitude' | 'bmd-forecast' | 'bamis-bulletin' | 'bamis-national' | 'bmd-live-forecast' | 'bmd-live-warnings' | 'bmd-live-outlook' | 'ffwc-alert' | 'ffwc-hydrograph' | 'ffwc-observed' | 'ffwc-forecast-maps';
+export type ActiveSection = 'forecast' | 'advisory' | 'weather-alert' | 'flood-magnitude' | 'bmd-forecast' | 'bamis-bulletin' | 'bamis-national' | 'bmd-live-forecast' | 'bmd-live-warnings' | 'bmd-live-outlook' | 'ffwc-alert' | 'ffwc-hydrograph' | 'ffwc-observed' | 'ffwc-forecast-maps' | 'ais-monthly' | 'ais-special' | 'ais-technology';
 
 interface WebsiteItem {
   id: string;
@@ -233,6 +234,36 @@ export default function Sidebar({
           badge: 'Maps'
         }
       ]
+    },
+    {
+      id: 'ais',
+      name: 'AIS Portal (কৃষি তথ্য সার্ভিস)',
+      domain: 'ais.gov.bd',
+      active: true,
+      themeColor: '#16a34a',
+      subsections: [
+        {
+          id: 'ais-monthly',
+          href: '/ais',
+          label: 'Monthly Agriculture Advisory',
+          icon: Calendar,
+          badge: 'Live'
+        },
+        {
+          id: 'ais-special',
+          href: '/ais/special-advisory',
+          label: 'Special Advisories & Files',
+          icon: FileText,
+          badge: 'Files'
+        },
+        {
+          id: 'ais-technology',
+          href: '/ais/crop-technology',
+          label: 'Crop Production Technology',
+          icon: Sprout,
+          badge: 'Tech'
+        }
+      ]
     }
   ]);
 
@@ -241,7 +272,8 @@ export default function Sidebar({
     bmd: true,
     bamis: true,
     'bmd-live': true,
-    ffwc: true
+    ffwc: true,
+    ais: true
   });
 
   const toggleSite = (siteId: string) => {
@@ -270,6 +302,11 @@ export default function Sidebar({
       subText = 'BD';
       gradient = 'linear-gradient(135deg, #054c27 0%, #0c713e 100%)';
       shadowColor = 'rgba(12, 113, 62, 0.25)';
+    } else if (site.id === 'ais') {
+      topText = 'AIS';
+      subText = 'BD';
+      gradient = 'linear-gradient(135deg, #15803d 0%, #16a34a 100%)';
+      shadowColor = 'rgba(22, 163, 74, 0.25)';
     } else if (site.id === 'bmd') {
       topText = 'BMD';
       subText = 'BD';

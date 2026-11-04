@@ -32,7 +32,13 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
   // Derive active section from the current URL pathname
   let activeSection: ActiveSection = 'forecast';
-  if (pathname.startsWith('/ffwc/hydrograph')) {
+  if (pathname.startsWith('/ais/special-advisory') || pathname.startsWith('/ais/files')) {
+    activeSection = 'ais-special';
+  } else if (pathname.startsWith('/ais/crop-technology') || pathname.startsWith('/ais/seedbed') || pathname.startsWith('/ais/technology')) {
+    activeSection = 'ais-technology';
+  } else if (pathname.startsWith('/ais')) {
+    activeSection = 'ais-monthly';
+  } else if (pathname.startsWith('/ffwc/hydrograph')) {
     activeSection = 'ffwc-hydrograph';
   } else if (pathname.startsWith('/ffwc/observed-water-level') || pathname.startsWith('/ffwc/observed')) {
     activeSection = 'ffwc-observed';
